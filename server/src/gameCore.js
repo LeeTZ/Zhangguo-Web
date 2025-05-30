@@ -290,16 +290,21 @@ class GameCore {
 
   // 发放初始英杰牌
   dealInitialHeroCards() {
+    console.log('Starting to deal initial hero cards...');
+    
     // 1. 每位玩家获得1张无所属英杰牌
     this.players.forEach(player => {
+      console.log(`Dealing neutral hero card to player ${player.name || player.id}`);
       const [neutralCard] = this.decks.heroNeutral.draw();
       if (neutralCard) {
         player.addCard('heroNeutral', neutralCard);
+        console.log(`Added neutral hero card to player ${player.name || player.id}:`, neutralCard);
       }
     });
 
     // 2. 每位玩家从任意国家牌堆中抽取4张，让玩家选择保留2-3张
     this.players.forEach(player => {
+      console.log(`Drawing country hero cards for player ${player.name || player.id}`);
       // 记录玩家抽取的牌，等待玩家选择
       player.tempHeroCards = [];
       
@@ -316,12 +321,14 @@ class GameCore {
           const [card] = this.decks.hero[selectedCountry].draw();
           if (card) {
             drawnCards.push(card);
+            console.log(`Drew card from ${selectedCountry}:`, card);
           }
         }
       }
       
       // 存储抽取的牌，等待玩家选择
       player.tempHeroCards = drawnCards;
+      console.log(`Temp hero cards for player ${player.name || player.id}:`, drawnCards);
     });
   }
 
@@ -334,17 +341,21 @@ class GameCore {
     console.log('Found player:', player);
     
     if (!player) {
+      console.error('Player not found:', playerId);
       throw new Error('玩家不存在');
     }
     
     if (!player.tempHeroCards) {
-      console.log('Player temp hero cards:', player.tempHeroCards);
+      console.error('No temp hero cards for player:', player);
       throw new Error('没有待选择的英杰牌');
     }
+
+    console.log(`Player ${player.name || player.id} temp hero cards:`, player.tempHeroCards);
 
     // 验证选择的数量是否在2-3张之间
     if (selectedCardIds.length < GAME_CONSTANTS.INITIAL_HERO_CARDS.KEEP.MIN || 
         selectedCardIds.length > GAME_CONSTANTS.INITIAL_HERO_CARDS.KEEP.MAX) {
+      console.error('Invalid number of cards selected:', selectedCardIds.length);
       throw new Error('必须选择2-3张英杰牌保留');
     }
 
@@ -353,6 +364,7 @@ class GameCore {
       !player.tempHeroCards.some(card => card.id === id)
     );
     if (invalidCards.length > 0) {
+      console.error('Invalid cards selected:', invalidCards);
       throw new Error(`选择了无效的卡牌: ${invalidCards.join(', ')}`);
     }
 
@@ -374,6 +386,7 @@ class GameCore {
     // 清除临时存储的牌
     delete player.tempHeroCards;
     console.log('Initial hero selection completed for player:', playerId);
+    console.log('Player current hand:', player.hand);
   }
 
   // 抽取一张天时牌并使其生效
@@ -410,7 +423,7 @@ class GameCore {
 
   // 获取天时牌堆
   getTianshiDeck() {
-    console.log('Getting tianshi deck:', this.decks.tianshi.cards);
+    //console.log('Getting tianshi deck:', this.decks.tianshi.cards);
     return this.decks.tianshi.cards;
   }
 
@@ -426,9 +439,28 @@ class GameCore {
     const currentPlayer = this.getCurrentPlayer();
     const initialCards = currentPlayer?.tempHeroCards || [];
 
+    // 转换玩家信息为前端需要的格式
+    const players = this.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      hand: {
+        hero: p.hand.hero || [],
+        heroNeutral: p.hand.heroNeutral || [],
+        renhe: p.hand.renhe || [],
+        shishi: p.hand.shishi || [],
+        shenqi: p.hand.shenqi || []
+      },
+      geoTokens: p.geoTokens || 0,
+      tributeTokens: p.tributeTokens || 0,
+      isHost: p.isHost || false,
+      isReady: p.isReady || false
+    }));
+
+    console.log('GameCore getState players:', players);
+
     return {
       phase: this.phase,  // 确保phase在返回对象的最前面
-      players: this.players.map(p => p.toJSON()),
+      players: players,
       countries: this.countries,
       decks: {
         tianshi: this.decks.tianshi.size(),
@@ -444,7 +476,15 @@ class GameCore {
       market: this.market,
       activeTianshiCard: this.activeTianshiCard,
       round: this.round,
-      currentPlayer: this.getCurrentPlayer(),
+      currentPlayer: currentPlayer ? {
+        id: currentPlayer.id,
+        name: currentPlayer.name,
+        hand: currentPlayer.hand,
+        geoTokens: currentPlayer.geoTokens,
+        tributeTokens: currentPlayer.tributeTokens,
+        isHost: currentPlayer.isHost,
+        isReady: currentPlayer.isReady
+      } : null,
       initialCards: initialCards  // 添加初始英雄牌
     };
   }

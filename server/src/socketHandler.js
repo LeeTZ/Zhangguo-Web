@@ -744,16 +744,43 @@ class SocketHandler {
     }
 
     const gameState = room.gameCore.getState();
+
+    // 确保每个玩家的信息都包含完整的手牌
+    const players = room.players.map(player => {
+      // 从游戏核心中查找玩家的完整信息
+      const playerInGame = room.gameCore.players.find(p => 
+        p.id === player.playerId || 
+        p.id === player.id || 
+        p.id === player.sessionId
+      );
+
+      console.log(`Finding player in game for ${player.name}:`, playerInGame);
+
+      return {
+        id: player.playerId || player.id,
+        sessionId: player.sessionId,
+        username: player.name,
+        isHost: player.isHost,
+        ready: player.isReady,
+        hand: playerInGame?.hand || {
+          hero: [],
+          heroNeutral: [],
+          renhe: [],
+          shishi: [],
+          shenqi: []
+        },
+        geoTokens: playerInGame?.geoTokens || 3,
+        tributeTokens: playerInGame?.tributeTokens || 0
+      };
+    });
+
+    console.log('Processed players with hands:', players);
+
     return {
       ...gameState,
       roomId,
       currentPlayer: room.gameCore.getCurrentPlayer(),
-      players: room.players.map(p => ({
-        username: p.name,
-        sessionId: p.playerId,
-        ready: p.ready || false,
-        isHost: p.isHost
-      }))
+      players: players
     };
   }
 
@@ -810,15 +837,29 @@ class SocketHandler {
 
       // 让机器人玩家自动选择英雄
       const botPlayers = room.players.filter(p => p.name.startsWith('Bot'));
-      console.log('Bot players:', botPlayers);
+      console.log('Found bot players:', botPlayers);
 
       botPlayers.forEach(bot => {
         const botGamePlayer = room.gameCore.players.find(p => p.id === bot.playerId);
+        console.log(`Checking bot player ${bot.name}:`, botGamePlayer);
+        
         if (botGamePlayer && botGamePlayer.tempHeroCards) {
+          console.log(`Bot ${bot.name} has temp hero cards:`, botGamePlayer.tempHeroCards);
           // 机器人简单地选择前两张牌
           const botSelectedCards = botGamePlayer.tempHeroCards.slice(0, 2).map(card => card.id);
           console.log(`Bot ${bot.name} selecting cards:`, botSelectedCards);
-          room.gameCore.selectInitialHeroCards(bot.playerId, botSelectedCards);
+          
+          try {
+            room.gameCore.selectInitialHeroCards(bot.playerId, botSelectedCards);
+            console.log(`Bot ${bot.name} hero selection successful`);
+            // 输出机器人的当前手牌
+            const updatedBotPlayer = room.gameCore.players.find(p => p.id === bot.playerId);
+            console.log(`Bot ${bot.name} current hand:`, updatedBotPlayer.hand);
+          } catch (error) {
+            console.error(`Error in bot ${bot.name} hero selection:`, error);
+          }
+        } else {
+          console.log(`Bot ${bot.name} has no temp hero cards or not found in game core`);
         }
       });
 

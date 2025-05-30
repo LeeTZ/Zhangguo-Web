@@ -7,9 +7,15 @@ export interface TianshiCard {
 
 // 英杰牌类型
 export interface HeroCard {
-  id: string | number;
+  id: string;
   name: string;
-  country?: string;
+  country: string;
+  birthDeath: string;
+  type: 'hero' | 'heroNeutral';
+  score: number;
+  goal: string;
+  description: string;
+  quote: string;
   effect: string;
 }
 
