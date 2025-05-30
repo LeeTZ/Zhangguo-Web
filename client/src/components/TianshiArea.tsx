@@ -8,6 +8,13 @@ interface TianshiAreaProps {
   tianshiDeck?: TianshiCard[]; // 添加天时牌堆数据
 }
 
+// 格式化效果文本
+const formatEffect = (effect: string | { type: string; value: number } | undefined): string => {
+  if (!effect) return '无效果';
+  if (typeof effect === 'string') return effect;
+  return `${effect.type}: ${effect.value}`;
+};
+
 export const TianshiArea: React.FC<TianshiAreaProps> = ({ 
   activeTianshiCard, 
   tianshiDeckCount,
@@ -29,7 +36,7 @@ export const TianshiArea: React.FC<TianshiAreaProps> = ({
         {activeTianshiCard ? (
           <div className="tianshi-card">
             <h3>{activeTianshiCard.name}</h3>
-            <p>{activeTianshiCard.effect}</p>
+            <p>{formatEffect(activeTianshiCard.effect)}</p>
           </div>
         ) : (
           <div className="tianshi-card empty">
@@ -53,7 +60,7 @@ export const TianshiArea: React.FC<TianshiAreaProps> = ({
                     <div key={card.id} className="deck-card">
                       <div className="card-index">#{index + 1}</div>
                       <h3>{card.name}</h3>
-                      <p>{card.effect}</p>
+                      <p>{formatEffect(card.effect)}</p>
                     </div>
                   ))}
                 </div>

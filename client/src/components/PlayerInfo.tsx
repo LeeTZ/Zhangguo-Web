@@ -6,10 +6,12 @@ import { HeroCard } from '../types/cards';
 interface PlayerInfoProps {
   name: string;
   handSize: number;
+  renheCardCount: number;
   geoTokens: number;
   tributeTokens: number;
   heroCards: HeroCard[];
   isCurrentPlayer?: boolean;
+  score?: number;
 }
 
 interface StyledCardProps {
@@ -22,34 +24,39 @@ const StyledCard = styled(Card)<StyledCardProps>`
   background: ${props => props.isCurrentPlayer ? '#e6f7ff' : '#fff'};
   
   .ant-card-body {
-    padding: 12px;
+    padding: 8px;
   }
 `;
 
-const PlayerName = styled.div`
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 8px;
-  color: #1890ff;
+const InfoRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
 `;
 
-const InfoGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+const PlayerNameSection = styled.div`
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  font-size: 13px;
+  color: #1890ff;
+  font-weight: 500;
+  flex: 1;
 `;
 
 const InfoItem = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 14px;
+  font-size: 13px;
+  white-space: nowrap;
 `;
 
 const TokenIcon = styled.span<{ type: 'geo' | 'tribute' }>`
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -59,10 +66,18 @@ const TokenIcon = styled.span<{ type: 'geo' | 'tribute' }>`
   color: white;
 `;
 
+const HeroSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+`;
+
 const HeroCardList = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  flex: 1;
 `;
 
 const HeroCardTag = styled.div<{ country?: string }>`
@@ -128,95 +143,129 @@ const HeroQuote = styled.div`
   font-size: 14px;
 `;
 
+const ScoreIcon = styled.span`
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: #f5222d;
+  color: white;
+`;
+
+const HandCardIcon = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: #666;
+  
+  > span {
+    background: #1890ff;
+    color: white;
+    padding: 2px 4px;
+    border-radius: 4px;
+    min-width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  > span.renhe {
+    background: #fa8c16;
+  }
+`;
+
+const RenheCardIcon = styled.span`
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  background: #fa8c16;
+  color: white;
+`;
+
 export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   name,
   handSize,
+  renheCardCount,
   geoTokens,
   tributeTokens,
   heroCards,
   isCurrentPlayer = false,
+  score = 0,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-
-  const showModal = () => {
-    setIsModalVisible(true);
-  };
-
-  const handleOk = () => {
-    setIsModalVisible(false);
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-  };
 
   return (
     <>
       <StyledCard size="small" isCurrentPlayer={isCurrentPlayer}>
-        <PlayerName>{name}</PlayerName>
-        <InfoGrid>
-          <InfoItem>
-            <span>手牌:</span>
-            <Badge count={handSize} style={{ backgroundColor: '#1890ff' }} />
-          </InfoItem>
-          <InfoItem>
-            <span>地利:</span>
-            <TokenIcon type="geo">{geoTokens}</TokenIcon>
-          </InfoItem>
-          <InfoItem>
-            <span>贡品:</span>
-            <TokenIcon type="tribute">{tributeTokens}</TokenIcon>
-          </InfoItem>
-          {heroCards.length > 0 && (
+        <InfoRow>
+          <PlayerNameSection>
+            {name}
             <InfoItem>
-              <Button type="link" onClick={showModal} style={{ padding: 0 }}>
-                查看英杰牌
-              </Button>
+              <span>得分</span>
+              <ScoreIcon>{score}</ScoreIcon>
             </InfoItem>
+            <InfoItem>
+              <span>手牌</span>
+              <HandCardIcon>
+                <span>{renheCardCount}</span>
+              </HandCardIcon>
+            </InfoItem>
+            <InfoItem>
+              <span>地利</span>
+              <TokenIcon type="geo">{geoTokens}</TokenIcon>
+            </InfoItem>
+            <InfoItem>
+              <span>贡品</span>
+              <TokenIcon type="tribute">{tributeTokens}</TokenIcon>
+            </InfoItem>
+          </PlayerNameSection>
+        </InfoRow>
+        
+        <HeroSection>
+          {heroCards.length > 0 && (
+            <Button 
+              type="link" 
+              onClick={() => setIsModalVisible(true)} 
+              style={{ padding: '0 4px', height: 'auto', fontSize: '13px' }}
+            >
+              英杰详情
+            </Button>
           )}
-        </InfoGrid>
-        <HeroCardList>
-          {heroCards.filter(hero => hero != null).map((hero, index) => (
-            <Tooltip key={hero.id || index} title={
-              <>
-                <div>国家：{hero.country || '无所属'}</div>
-                {hero.birthDeath && <div>生卒：{hero.birthDeath}</div>}
-                <div>目标：{hero.goal}</div>
-                <div>描述：{hero.description}</div>
-                {hero.quote && <div>"{hero.quote}"</div>}
-              </>
-            }>
-              <HeroCardTag country={hero.country}>
-                {hero.name}
-              </HeroCardTag>
-            </Tooltip>
-          ))}
-        </HeroCardList>
+          <HeroCardList>
+            {heroCards.map((hero, index) => (
+              <Tooltip key={index} title={hero.name}>
+                <HeroCardTag country={hero.country}>{hero.name}</HeroCardTag>
+              </Tooltip>
+            ))}
+          </HeroCardList>
+        </HeroSection>
       </StyledCard>
 
       <Modal
-        title={`${name}的英杰牌`}
+        title="英杰详情"
         open={isModalVisible}
-        onOk={handleOk}
-        onCancel={handleCancel}
+        onCancel={() => setIsModalVisible(false)}
+        footer={null}
         width={600}
-        footer={[
-          <Button key="close" type="primary" onClick={handleOk}>
-            关闭
-          </Button>
-        ]}
       >
-        {heroCards.filter(hero => hero != null).map((hero) => (
-          <HeroDetailCard key={hero.id}>
+        {heroCards.map((hero, index) => (
+          <HeroDetailCard key={index}>
             <HeroTitle>{hero.name}</HeroTitle>
             <HeroInfo>
               <span>国家: {hero.country || '无所属'}</span>
-              <span>得分: {hero.score}</span>
-              {hero.birthDeath && <span>生卒: {hero.birthDeath}</span>}
+              <span>类型: {hero.type}</span>
             </HeroInfo>
-            <div>目标: {hero.goal}</div>
             <HeroDescription>{hero.description}</HeroDescription>
-            {hero.quote && <HeroQuote>{hero.quote}</HeroQuote>}
+            {hero.quote && <HeroQuote>"{hero.quote}"</HeroQuote>}
           </HeroDetailCard>
         ))}
       </Modal>

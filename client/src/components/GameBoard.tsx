@@ -5,27 +5,78 @@ import { GameBoardProps, Player, Hand } from 'types/props';
 import { TianshiArea } from 'components/TianshiArea';
 import { CountriesArea } from 'components/CountriesArea';
 import { PlayerInfo } from 'components/PlayerInfo';
-import { HeroCard, TianshiCard } from 'types/cards';
+import { HeroCard, TianshiCard, RenheCard } from 'types/cards';
+import RenheCardList from 'components/RenheCardList';
 
 // 样式组件定义
 const BoardContainer = styled.div`
   display: grid;
-  grid-template-columns: 250px 1fr 250px;
-  gap: 20px;
-  padding: 20px;
+  grid-template-columns: 400px 1fr;
+  gap: 16px;
+  padding: 24px;
   height: 100vh;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 95%;
 `;
 
 const PlayerArea = styled.div`
   grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding-right: 6px;
+
+  /* 自定义滚动条样式 */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+  }
+`;
+
+const PlayerSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .ant-card {
+    margin: 0;
+    .ant-card-head {
+      min-height: 32px;
+      padding: 0 8px;
+      .ant-card-head-title {
+        padding: 4px 0;
+        font-size: 13px;
+      }
+    }
+    .ant-card-body {
+      padding: 8px;
+    }
+  }
+
+  /* 调整PlayerInfo组件在卡片中的样式 */
+  .ant-card-body > div {
+    margin: 4px 0;
+  }
+
+  /* 调整RenheCardList在卡片中的样式 */
+  .ant-card:last-child .ant-card-body {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
 `;
 
 const MainArea = styled.div`
   grid-column: 2;
-`;
-
-const DeckArea = styled.div`
-  grid-column: 3;
 `;
 
 // 格式化牌堆数量显示
@@ -75,6 +126,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
       // 合并所有英雄牌
       const allHeroCards = [...heroCards, ...heroNeutralCards].filter(card => card != null);
       
+      // 计算总得分
+      const score = allHeroCards.reduce((total, hero) => total + (hero.score || 0), 0);
+      
       const formattedPlayer = {
         id: player.id || player.sessionId,
         name: player.username,
@@ -86,11 +140,13 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           shenqi: playerHand.shenqi || []
         },
         handSize,
+        renheCardCount: (playerHand.renhe || []).length,
         geoTokens: player.geoTokens || 3,
         tributeTokens: player.tributeTokens || 0,
         heroCards: allHeroCards,
         isHost: player.isHost,
-        isBot: isBot
+        isBot: isBot,
+        score: score
       };
 
       console.log(`玩家 ${player.username} 的格式化数据:`, JSON.stringify(formattedPlayer, null, 2));
@@ -104,49 +160,47 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
   return (
     <BoardContainer>
       <PlayerArea>
-        <Card title="玩家信息" variant="outlined">
-          {formattedPlayers.map((player) => (
-            <PlayerInfo
-              key={player.id}
-              name={player.name}
-              handSize={player.handSize}
-              geoTokens={player.geoTokens}
-              tributeTokens={player.tributeTokens}
-              heroCards={player.heroCards}
-              isCurrentPlayer={player.id === currentPlayerId}
-            />
-          ))}
-        </Card>
+        {formattedPlayers.map((player) => (
+          <PlayerSection key={player.id}>
+            <Card>
+              <PlayerInfo
+                name={player.name}
+                handSize={player.handSize}
+                renheCardCount={player.renheCardCount}
+                geoTokens={player.geoTokens}
+                tributeTokens={player.tributeTokens}
+                heroCards={player.heroCards}
+                isCurrentPlayer={player.id === currentPlayerId}
+                score={player.score}
+              />
+            </Card>
+            
+            <Card>
+              <RenheCardList
+                cards={player.hand.renhe as RenheCard[]}
+                selectedCardIds={[]}
+                onCardClick={(cardId) => {
+                  console.log(`玩家 ${player.name} 点击了人和牌:`, cardId);
+                }}
+              />
+            </Card>
+          </PlayerSection>
+        ))}
       </PlayerArea>
 
       <MainArea>
         <Card title="游戏区域">
-          {/* 天时牌区域 */}
           <TianshiArea 
             activeTianshiCard={gameState.activeTianshiCard}
             tianshiDeckCount={formatDeckCount(gameState.decks.tianshi)}
             tianshiDeck={gameState.tianshiDeck}
           />
           
-          {/* 七国形势区域 */}
           <CountriesArea countries={gameState.countries} />
           
-          {/* 回合信息 */}
           <div>回合: {gameState.round}</div>
         </Card>
       </MainArea>
-
-      <DeckArea>
-        <Card title="牌堆信息">
-          {/* 牌堆信息 */}
-          <p>天时牌堆: {formatDeckCount(gameState.decks.tianshi)}</p>
-          <p>人和牌堆: {formatDeckCount(gameState.decks.renhe)}</p>
-          <p>史实牌堆: {formatDeckCount(gameState.decks.shishi)}</p>
-          <p>神机牌堆: {formatDeckCount(gameState.decks.shenqi)}</p>
-          <p>先机牌堆: {formatDeckCount(gameState.decks.xianji)}</p>
-          <p>远谋牌堆: {formatDeckCount(gameState.decks.yuanmou)}</p>
-        </Card>
-      </DeckArea>
     </BoardContainer>
   );
 }; 

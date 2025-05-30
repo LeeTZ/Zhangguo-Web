@@ -4,7 +4,7 @@ export interface BaseCard {
   name: string;
   type: string;
   description?: string;
-  effect?: string;
+  effect?: string | { type: string; value: number };
 }
 
 // 天时牌类型
@@ -23,8 +23,16 @@ export interface HeroCard extends BaseCard {
 }
 
 // 人和牌类型
-export interface RenheCard extends BaseCard {
+export interface RenheCard {
+  id: string;
+  name: string;
   type: 'renhe';
+  cardType: 'junlue' | 'mimou' | 'neizheng' | 'waijiao';
+  description: string;
+  effect: {
+    type: string;
+    value: number;
+  };
 }
 
 // 史实牌类型

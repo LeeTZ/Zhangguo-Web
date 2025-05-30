@@ -1,6 +1,7 @@
 // 战国卡牌游戏核心数据结构与牌堆管理
 const { TurnPhase } = require('./gamePhases');
 const { tianshiCards, getTianshiDeck, getHeroDeckByCountry, getNeutralHeroDeck } = require('./cardData');
+const { createRenheCards, shuffleCards } = require('./data/renheCards');
 
 // 卡牌类型
 const CardType = {
@@ -337,8 +338,24 @@ class GameCore {
         console.log('[游戏核心] 天时牌堆初始化完成，包含', this.decks.tianshi.size(), '张牌');
       }
 
+      // 初始化人和牌堆
+      const renheCards = createRenheCards();
+      this.decks.renhe = new Deck(renheCards);
+      this.decks.renhe.shuffle();
+      console.log('[游戏核心] 人和牌堆初始化完成，包含', this.decks.renhe.size(), '张牌');
+
+      // 为每个玩家发放初始人和牌
+      this.players.forEach(player => {
+        const initialRenheCards = this.decks.renhe.draw(GAME_CONSTANTS.INITIAL_RENHE_CARDS);
+        if (initialRenheCards.length > 0) {
+          player.hand.renhe = initialRenheCards;
+          console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialRenheCards.length} 张人和牌`);
+        } else {
+          console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始人和牌`);
+        }
+      });
+
       // 初始化其他牌堆
-      this.decks.renhe = new Deck([]);
       this.decks.shishi = new Deck([]);
       this.decks.shenqi = new Deck([]);
       this.decks.xianji = new Deck([]);
@@ -355,13 +372,6 @@ class GameCore {
       console.log('[游戏核心] 所有牌堆初始化完成');
     } catch (error) {
       console.error('[游戏核心] 初始化牌堆时发生错误:', error);
-      // 确保即使出错也创建空牌堆
-      this.decks.tianshi = this.decks.tianshi || new Deck([]);
-      this.decks.renhe = this.decks.renhe || new Deck([]);
-      this.decks.shishi = this.decks.shishi || new Deck([]);
-      this.decks.shenqi = this.decks.shenqi || new Deck([]);
-      this.decks.xianji = this.decks.xianji || new Deck([]);
-      this.decks.yuanmou = this.decks.yuanmou || new Deck([]);
     }
   }
 
