@@ -764,59 +764,47 @@ class SocketHandler {
     });
 
     // 确保每个玩家的信息都包含完整的手牌
-    const players = room.players.map(player => {
-      // 从游戏核心中查找玩家的完整信息
-      const playerInGame = room.gameCore.players.find(p => 
-        p.id === player.playerId || 
-        p.id === player.id || 
-        p.sessionId === player.id
+    const players = room.gameCore.players.map(playerInGame => {
+      // 在room.players中找到对应的玩家信息
+      const playerInRoom = room.players.find(p => 
+        p.playerId === playerInGame.id || 
+        p.id === playerInGame.id || 
+        p.sessionId === playerInGame.id
       );
 
+      if (!playerInRoom) {
+        console.error(`[游戏状态] 无法找到玩家信息:`, playerInGame);
+        return null;
+      }
+
       // 获取玩家的临时英雄牌（用于初始选择阶段）
-      const tempHeroCards = playerInGame?.tempHeroCards || [];
+      const tempHeroCards = playerInGame.tempHeroCards || [];
 
-      // 确保手牌信息完整
-      const hand = playerInGame?.hand || {
-        hero: [],
-        heroNeutral: [],
-        renhe: [],
-        shishi: [],
-        shenqi: []
-      };
+      // 判断是否是机器人玩家
+      const isBot = playerInRoom.name.startsWith('Bot');
 
-      // 如果是机器人玩家，使用其在游戏核心中的实际手牌
-      const isBot = player.name.startsWith('Bot');
-      const finalHand = isBot ? playerInGame?.hand : hand;
+      console.log(`[游戏状态] 玩家 ${playerInRoom.name} 的手牌:`, playerInGame.hand);
 
       const formattedPlayer = {
-        id: player.playerId || player.id,
-        sessionId: player.sessionId,
-        username: player.name,
+        id: playerInGame.id,
+        sessionId: playerInRoom.sessionId,
+        username: playerInRoom.name,
         isBot: isBot,
-        isHost: player.isHost,
-        hand: {
-          hero: finalHand?.hero || [],
-          heroNeutral: finalHand?.heroNeutral || [],
-          renhe: finalHand?.renhe || [],
-          shishi: finalHand?.shishi || [],
-          shenqi: finalHand?.shenqi || []
+        isHost: playerInRoom.isHost,
+        hand: playerInGame.hand || {
+          hero: [],
+          heroNeutral: [],
+          renhe: [],
+          shishi: [],
+          shenqi: []
         },
-        geoTokens: playerInGame?.geoTokens || 3,
-        tributeTokens: playerInGame?.tributeTokens || 0,
+        geoTokens: playerInGame.geoTokens || 3,
+        tributeTokens: playerInGame.tributeTokens || 0,
         tempHeroCards: isBot ? [] : tempHeroCards
       };
 
       return formattedPlayer;
-    });
-
-    // 查找当前玩家在游戏核心中的信息
-    const currentPlayerInGame = gameState.currentPlayer ? 
-      room.gameCore.players.find(p => p.id === gameState.currentPlayer.id) : null;
-
-    console.log('[游戏状态] 当前玩家信息:', {
-      currentPlayerId: gameState.currentPlayer?.id,
-      tempHeroCards: currentPlayerInGame?.tempHeroCards
-    });
+    }).filter(Boolean); // 移除可能的null值
 
     const finalState = {
       ...gameState,
@@ -824,14 +812,18 @@ class SocketHandler {
       currentPlayer: room.gameCore.getCurrentPlayer(),
       players: players,
       // 修改初始英雄牌的获取逻辑
-      initialCards: gameState.phase === 'initial_hero_selection' && currentPlayerInGame ? 
-        currentPlayerInGame.tempHeroCards || [] : []
+      initialCards: gameState.phase === 'initial_hero_selection' ? 
+        (gameState.currentPlayer ? gameState.currentPlayer.tempHeroCards || [] : []) : []
     };
 
     console.log('[游戏状态] 最终状态:', {
       phase: finalState.phase,
       currentPlayerId: finalState.currentPlayer?.id,
-      initialCardsCount: finalState.initialCards.length
+      initialCardsCount: finalState.initialCards.length,
+      players: finalState.players.map(p => ({
+        name: p.username,
+        handSize: p.hand.hero.length + p.hand.heroNeutral.length
+      }))
     });
 
     return finalState;

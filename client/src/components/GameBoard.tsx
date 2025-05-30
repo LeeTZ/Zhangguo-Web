@@ -49,57 +49,57 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
 
   // 将服务器返回的玩家信息转换为组件需要的格式
   const formatPlayers = (players: Player[]) => {
+    console.log('原始玩家数据:', JSON.stringify(players, null, 2));
     return players.map(player => {
       // 判断是否是机器人玩家（根据名字前缀）
       const isBot = player.username?.startsWith('Bot');
-
-      // 查找完整的玩家信息（包含手牌）
-      let fullPlayerInfo = player;  // 直接使用player作为基础信息
       
-      // 如果是当前玩家，使用 gameState.currentPlayer 的信息
-      if (player.sessionId === gameState.currentPlayer?.id || 
-          player.id === gameState.currentPlayer?.id) {
-        fullPlayerInfo = {
-          ...player,
-          ...gameState.currentPlayer,
-          hand: {
-            ...player.hand,
-            ...gameState.currentPlayer.hand
-          }
-        };
-      }
+      // 获取玩家的手牌数据
+      const playerHand = player.hand || {
+        hero: [],
+        heroNeutral: [],
+        renhe: [],
+        shishi: [],
+        shenqi: []
+      };
 
+      console.log(`处理玩家 ${player.username} 的原始数据:`, JSON.stringify(player, null, 2));
+      
       // 获取英雄卡
-      const heroCards = fullPlayerInfo.hand?.hero?.filter(card => card != null) || [];
-      const heroNeutralCards = fullPlayerInfo.hand?.heroNeutral?.filter(card => card != null) || [];
+      const heroCards = playerHand.hero?.filter(card => card != null) || [];
+      const heroNeutralCards = playerHand.heroNeutral?.filter(card => card != null) || [];
       
-      const handSize = (heroCards.length + heroNeutralCards.length) || 0;
+      // 计算实际的手牌数量
+      const handSize = heroCards.length + heroNeutralCards.length;
       
       // 合并所有英雄牌
       const allHeroCards = [...heroCards, ...heroNeutralCards].filter(card => card != null);
       
-      // 构建格式化后的玩家信息
-      return {
-        id: fullPlayerInfo.id || fullPlayerInfo.sessionId,
-        name: fullPlayerInfo.username,
+      const formattedPlayer = {
+        id: player.id || player.sessionId,
+        name: player.username,
         hand: {
           hero: heroCards,
           heroNeutral: heroNeutralCards,
-          renhe: fullPlayerInfo.hand?.renhe || [],
-          shishi: fullPlayerInfo.hand?.shishi || [],
-          shenqi: fullPlayerInfo.hand?.shenqi || []
+          renhe: playerHand.renhe || [],
+          shishi: playerHand.shishi || [],
+          shenqi: playerHand.shenqi || []
         },
         handSize,
-        geoTokens: fullPlayerInfo.geoTokens || 3,
-        tributeTokens: fullPlayerInfo.tributeTokens || 0,
+        geoTokens: player.geoTokens || 3,
+        tributeTokens: player.tributeTokens || 0,
         heroCards: allHeroCards,
-        isHost: fullPlayerInfo.isHost,
+        isHost: player.isHost,
         isBot: isBot
       };
+
+      console.log(`玩家 ${player.username} 的格式化数据:`, JSON.stringify(formattedPlayer, null, 2));
+      return formattedPlayer;
     });
   };
 
   const formattedPlayers = formatPlayers(gameState.players);
+  console.log('最终格式化的玩家列表:', JSON.stringify(formattedPlayers, null, 2));
 
   return (
     <BoardContainer>
