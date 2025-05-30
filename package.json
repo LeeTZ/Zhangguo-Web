@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@ant-design/icons": "^6.0.0",
+    "antd": "^5.25.3",
+    "socket.io-client": "^4.8.1",
+    "styled-components": "^6.1.18"
+  }
+}

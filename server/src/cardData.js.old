@@ -1,0 +1,1286 @@
+const { CardType } = require('./gamePhases');
+
+// 英雄牌数据
+const heroCards = [
+  // 齐国英雄
+  {
+    id: '001',
+    name: '齐威王',
+    country: '齐',
+    birthDeath: '前378-320',
+    type: CardType.HERO,
+    score: 10,
+    goal: '同一回合内，齐国国力（三项属性和）增加超过6。明置时，齐国额外获得1枚称霸标记。',
+    description: '以善于纳谏用能，励志图强而名著史册。行改革，明法制、选贤能、明赏罚、国力日强。在位初期沈湎不治，但后来一鸣惊人，王威三十六年。',
+    quote: '此鸟不蜚则已，一蜚冲天；不鸣则已，一鸣惊人。 ——《史记·滑稽列传》'
+  },
+  {
+    id: '002',
+    name: '匡章',
+    country: '齐',
+    birthDeath: '前335-295',
+    type: CardType.HERO,
+    score: 8,
+    goal: '齐国拥有至少8枚称霸标记。',
+    description: '齐威王、齐宣王、齐湣王三朝名将。北伐燕，几乎灭掉燕国；南征楚，垂沙之战重创楚军，使楚国国力大衰；西攻函谷关，逼迫秦国割地求和。为齐立下赫赫战功。',
+    quote: '章子可谓知将分矣。——《吕氏春秋》'
+  },
+  {
+    id: '003',
+    name: '邹忌',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '齐国政理高于7。明置时，齐国额外获得1枚称霸标记。',
+    description: '齐威王时为相，封于下邳，号成侯。后又事齐宣王。邹忌时期，齐国先后取得了桂陵之战、桑丘之战、马陵之战等胜利。邹忌讽劝齐王纳谏除弊，徐州相王后，多国朝于齐国。',
+    quote: '邹忌修八尺有余，而形貌昳丽。 —— 《战国策·齐策一》'
+  },
+  {
+    id: '004',
+    name: '田忌',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '齐国一项属性为全场最高，同时另一项属性全场最低。明置时，你可以将最低的属性提高1点。',
+    description: '齐国公子。孙膑逃亡到齐国时，田忌赏识孙膑的才能，收为门客。在一次赛马时，孙膑向田忌提出了以下马对上马，以上马对中马，以中马对下马的策略，即著名的"田忌赛马"。',
+    quote: '今以君之下驷彼上驷，取君上驷与彼中驷，取君中驷与彼下驷。 ——《史记·孙子吴起列传》'
+  },
+  {
+    id: '005',
+    name: '齐宣王',
+    country: '齐',
+    birthDeath: '前350-301',
+    type: CardType.HERO,
+    score: 2,
+    goal: '齐国在战争中战胜燕国。游戏结束时，若稷下之学被打出，获得1枚贡品标记。',
+    description: '齐威王之子。在位时有两大事迹：两月灭燕，百家争鸣。灭燕为之后燕昭王的复仇埋下伏笔，而稷下学宫的发扬光大则带来了先秦的百家争鸣盛景。',
+    quote: '王顾左右而言他。 ——《孟子·梁惠王下》'
+  },
+  {
+    id: '006',
+    name: '齐湣王',
+    country: '齐',
+    birthDeath: '前323-284',
+    type: CardType.HERO,
+    score: 10,
+    goal: '游戏结束时，齐国国力是全场唯一最高。如果游戏因齐国统一天下结束，你退出得分排名，直接共同获胜。',
+    description: '齐国国君，在位十七年，屡建武功。吞并富有的宋国，自称东帝，四面树敌，最终招致后来五国合纵攻齐，齐国几近灭国的悲惨报复。',
+    quote: '宣王使人吹竽，必三百人。南郭处士请为王吹竽，宣王说之。湣王立，好一一听之，处士逃。 ——《韩非子·内储说上七术》'
+  },
+  {
+    id: '007',
+    name: '孙膑',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 8,
+    goal: '齐国在一场战争中获得庙算加成，及至少两次援兵并最终战胜。',
+    description: '军事家，是孙武的后代，因受过膑刑故称孙膑。曾与庞涓同窗学艺于鬼谷子。后被齐威王任命为军师，辅佐田忌两次击败庞涓，取得桂陵之战和马陵之战的胜利，奠定了齐国的霸业。',
+    quote: '孙子曰："夫解杂乱纷纠者不控卷，救斗者不搏撠。批亢捣虚，形格势禁，则自为解耳。" ——《史记·孙子吴起列传》'
+  },
+  {
+    id: '008',
+    name: '田单',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 8,
+    goal: '在齐国打出的复辟结算成功。',
+    description: '齐国名将，为齐国远房宗室。在乐毅率领五国军队，攻打齐国危亡之际，田单坚守即墨，以火牛阵大破燕军，收复失地七十余城，复兴齐国。后被拜为相国，封为安平君。',
+    quote: '夫始如处女，适人开户；后如脱兔，适不及距：其田单之谓邪！ ——《史记·田单列传》'
+  },
+  {
+    id: '009',
+    name: '孟尝君',
+    country: '齐',
+    birthDeath: '不详-279',
+    type: CardType.HERO,
+    score: 6,
+    goal: '你已经明置了三个不同国家的英杰牌，且其中有魏国的英杰牌。',
+    description: '名田文，战国四公子之一。以广招宾客，食客三千闻名。对所有人才不分贵贱，一视同仁，门下食客也多为"鸡鸣狗盗"之辈。因功高震主，天下知有孟尝君而不知齐王，晚年逃到魏国。',
+    quote: '孟尝君招致天下任侠，奸人入薛中盖六万余家矣。 ——《史记·孟尝君列传》'
+  },
+  {
+    id: '010',
+    name: '冯谖',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '冯谖客孟尝君被打出结算。若你是在其打出的同一回合明置的此牌，获得2枚贡品标记。',
+    description: '孟尝君门下食客之一，他"弹铗而歌"，向孟尝君索取了不少待遇后，以"焚券市义"树立了孟尝君的威信；又帮孟尝君营造"狡兔三窟"；在孟尝君遭齐王猜忌时，游说国君，使之威名重立。为孟尝君立下了汗马功劳。',
+    quote: '狡兔有三窟，仅得免其死耳；今君有一窟，未得高枕而卧也。请为君复凿二窟。 —— 《战国策·齐策四》'
+  },
+  {
+    id: '011',
+    name: '陈轸',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '韩国与魏国战争，且此时秦国的政理值高于6并拥有至少2枚称霸标记。',
+    description: '纵横家。曾游说入秦，受秦惠文王礼待，后来韩魏相争，他又献策秦王，坐视其两败俱伤，以便乘机取利。善于以讲故事的方式游说，一些脍炙人口的成语便由此而来，如画蛇添足、卞庄刺虎、计赚两虎。',
+    quote: '为蛇足者，终亡其酒。战无不胜，而不知止者，身且死，爵且后归，犹为蛇足也。 —— 《战国策·齐策二》'
+  },
+  {
+    id: '012',
+    name: '淳于髡',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '同一回合内，至少3张史实事件被结算。',
+    description: '齐国的政治家和思想家，以博学多才、滑稽多辩著称，杯盘狼藉、堕珥遗簪、乐极生悲、一鸣惊人等成语与其有关。齐威王拜其为政卿大夫。',
+    quote: '淳于髡者，齐之赘婿也。长不满七尺，滑稽多辩，数使诸侯，未尝屈辱。 ——《史记·滑稽列传》'
+  },
+  {
+    id: '013',
+    name: '城北徐公',
+    country: '齐',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 0,
+    goal: '当其他玩家明置一张英杰牌时，其结算前，你可以明置此牌，弃置至多X枚地利标记，然后获得相同数量的贡品标记。X为该英杰牌的基础得分。',
+    description: '出自《战国策·齐策》中"邹忌讽齐王纳谏" 一章。是齐国姓徐的美男子，邹忌比美的对象，后来也作美男子的代称。',
+    quote: '明日徐公来，孰视之，自以为不如；窥镜而自视，又弗如远甚。 —— 《战国策·齐策一》'
+  },
+  // 楚国英雄
+  {
+    id: '014',
+    name: '楚威王',
+    country: '楚',
+    birthDeath: '前370-329',
+    type: CardType.HERO,
+    score: 10,
+    goal: '楚国的经济比其他所有国家都至少高4，并拥有至少3枚称霸标记。',
+    description: '楚国的中兴之主。他一生以恢复楚庄王时代的霸业为志，在位期间，楚国的疆域达到了最大规模。囊括了长江中下游以及支流众多的淮河流域。',
+    quote: '楚，天下之强国也；王，天下之贤王也。 ——《史记·苏秦列传》'
+  },
+  {
+    id: '015',
+    name: '吴起',
+    country: '楚',
+    birthDeath: '前440-381',
+    type: CardType.HERO,
+    score: 8,
+    goal: '楚国在一场战争中，战争另一方获得了至少两次援兵，而楚国最终战胜。',
+    description: '兵家代表人物，在内政、军事上都有极高的成就。在楚国期间实施变法，使楚国力强盛，疆土向南大扩。著有《吴子兵法》。',
+    quote: '将在军，君命有所不受。 ——《吴子兵法》'
+  },
+  {
+    id: '016',
+    name: '屈原',
+    country: '楚',
+    birthDeath: '前340-278',
+    type: CardType.HERO,
+    score: 2,
+    goal: '楚辞被打出结算。若你是在其打出的同一回合明置的此牌，获得2枚贡品标记。游戏结束时，若郑袖（楚）和子兰（楚）无人明置，获得1枚贡品标记。',
+    description: '有楚国第一诗人的美称，任三闾大夫。因楚王听信谗言，被流放于江南地区。十八年间，屈原广泛地接触了人民群众和丰富生动的楚国民间文化，留下了千古不朽的绝唱《离骚》。',
+    quote: '路漫漫其修远兮，吾将上下而求索。 ——《离骚》'
+  },
+  {
+    id: '017',
+    name: '郑袖',
+    country: '楚',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '楚国政理值低于3，且屈原（楚）已被明置。',
+    description: '楚怀王宠妃，与子兰一起诬陷屈原，使其被流放。她的名字后来成为了"妒妇"的代称。',
+    quote: '郑袖挟恨而构兮，余辜皋陶以遗尤。 ——《离骚》'
+  },
+  {
+    id: '018',
+    name: '子兰',
+    country: '楚',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '楚国政理值低于3，且屈原（楚）已被明置。',
+    description: '楚怀王大臣，与郑袖一起诬陷屈原，使其被流放。',
+    quote: '谗人罔极，交乱四国。 ——《离骚》'
+  },
+  {
+    id: '019',
+    name: '楚怀王',
+    country: '楚',
+    birthDeath: '前328-299',
+    type: CardType.HERO,
+    score: 10,
+    goal: '游戏结束时，楚国国力是全场唯一最高。如果游戏因楚国统一天下结束，你退出得分排名，直接共同获胜。',
+    description: '楚威王之子。在位期间，楚国国力衰退。他先后两次被秦国诱骗，最终客死秦国。',
+    quote: '怀王恐，不敢复入秦。居郢，与秦交欢，使人质于秦，请无相攻。 ——《史记·楚世家》'
+  },
+  {
+    id: '020',
+    name: '项燕',
+    country: '楚',
+    birthDeath: '不详-301',
+    type: CardType.HERO,
+    score: 8,
+    goal: '楚国在一场战争中战胜齐国。明置时，楚国军事+1。',
+    description: '楚国名将。在垂沙之战中，项燕率军大败齐军，使齐国损失惨重。后来在齐国的反击中战死。其孙项羽后来成为了楚汉之争中的主角。',
+    quote: '项燕者，楚之名将也。 ——《史记·项羽本纪》'
+  },
+  {
+    id: '021',
+    name: '昭阳',
+    country: '楚',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '楚国在一场战争中战胜秦国。明置时，楚国军事+1。',
+    description: '楚国名将。在楚考烈王时期，率军击败秦军，使秦国不得不退兵。',
+    quote: '昭阳为将，击秦军，大破之。 ——《史记·楚世家》'
+  },
+  {
+    id: '022',
+    name: '春申君',
+    country: '楚',
+    birthDeath: '不详-238',
+    type: CardType.HERO,
+    score: 6,
+    goal: '你已经明置了三个不同国家的英杰牌，且其中有齐国的英杰牌。',
+    description: '名黄歇，战国四公子之一。曾任齐相，后来又在楚国任相，封于春申（今河南信阳），故称春申君。以招揽人才著称，门客数千人。',
+    quote: '春申君之时，楚最强大，天下莫能与之争。 ——《史记·春申君列传》'
+  },
+  {
+    id: '023',
+    name: '宋玉',
+    country: '楚',
+    birthDeath: '约前298-222',
+    type: CardType.HERO,
+    score: 2,
+    goal: '楚辞被打出结算。若你是在其打出的同一回合明置的此牌，获得2枚贡品标记。',
+    description: '楚国诗人，屈原的学生。其作品继承了楚辞的传统，代表作有《九辩》、《招魂》等。',
+    quote: '故为下国之士，则安能以少年之志，摧藩篱而直驰乎？ ——《高唐赋》'
+  },
+  {
+    id: '024',
+    name: '景舍',
+    country: '楚',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '楚国在一场战争中战胜魏国。明置时，楚国军事+1。',
+    description: '楚国名将。在楚威王时期，率军击败魏军，使魏国不得不退兵。',
+    quote: '景舍为将，击魏军，大破之。 ——《史记·楚世家》'
+  },
+  {
+    id: '025',
+    name: '楚平王',
+    country: '楚',
+    birthDeath: '不详-516',
+    type: CardType.HERO,
+    score: 2,
+    goal: '楚国经济值高于6。明置时，楚国经济+1。',
+    description: '楚国国君。在位期间，楚国国力强盛，但他本人却沉溺于享乐，不理朝政。',
+    quote: '平王之时，楚国富强，君臣骄奢。 ——《史记·楚世家》'
+  },
+  {
+    id: '026',
+    name: '伍子胥',
+    country: '楚',
+    birthDeath: '前559-484',
+    type: CardType.HERO,
+    score: 6,
+    goal: '楚国在一场战争中战败。明置时，你可以选择：获得1枚贡品标记，或在未灭亡的国家之间移动1枚军事标记。',
+    description: '楚国大夫伍奢之子。因其父被楚平王所杀，逃亡吴国，助吴伐楚，最终攻破楚都郢城，实现了复仇。',
+    quote: '子胥既见吴王，说以伐楚之利。 ——《史记·伍子胥列传》'
+  },
+  // 燕国英雄
+  {
+    id: '027',
+    name: '燕昭王',
+    country: '燕',
+    birthDeath: '前311-279',
+    type: CardType.HERO,
+    score: 8,
+    goal: '燕国在一场战争中战胜齐国。明置时，燕国军事+1。',
+    description: '燕国国君。即位时燕国刚被齐国攻破，他卧薪尝胆，礼贤下士，任用乐毅为将，终于复仇雪耻，几乎灭掉齐国。',
+    quote: '燕昭王收破燕后即位，卧薪尝胆，置酒讨论，朝夕为之。 ——《史记·乐毅列传》'
+  },
+  {
+    id: '028',
+    name: '乐毅',
+    country: '燕',
+    birthDeath: '不详-279',
+    type: CardType.HERO,
+    score: 8,
+    goal: '燕国在一场战争中战胜齐国。明置时，燕国军事+1。',
+    description: '魏国人，后仕燕国。燕昭王时为将，率五国联军攻齐，连下七十余城，几乎灭掉齐国。后因燕惠王猜忌，投奔赵国。',
+    quote: '乐毅奉命将燕师，与诸侯合兵以伐齐。 ——《史记·乐毅列传》'
+  },
+  {
+    id: '029',
+    name: '燕惠王',
+    country: '燕',
+    birthDeath: '不详-271',
+    type: CardType.HERO,
+    score: 10,
+    goal: '游戏结束时，燕国国力是全场唯一最高。如果游戏因燕国统一天下结束，你退出得分排名，直接共同获胜。',
+    description: '燕昭王之子。继位后猜忌乐毅，使乐毅投奔赵国，导致燕国国力衰退。',
+    quote: '燕惠王立，以骑劫代乐毅。 ——《史记·乐毅列传》'
+  },
+  {
+    id: '030',
+    name: '子之',
+    country: '燕',
+    birthDeath: '不详-314',
+    type: CardType.HERO,
+    score: 6,
+    goal: '燕国政理值低于3，且拥有至少2枚称霸标记。',
+    description: '燕国大臣。燕王哙禅位给他，他却不思报恩，反而骄奢淫逸，最终被燕国贵族所杀。',
+    quote: '子之骄溢，国人不附。 ——《史记·燕召公世家》'
+  },
+  {
+    id: '031',
+    name: '鹿毛寿',
+    country: '燕',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '燕国在一场战争中战胜赵国。明置时，燕国军事+1。',
+    description: '燕国名将。在燕昭王时期，率军击败赵军，使赵国不得不退兵。',
+    quote: '鹿毛寿为将，击赵军，大破之。 ——《史记·燕召公世家》'
+  },
+  {
+    id: '032',
+    name: '剧辛',
+    country: '燕',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '燕国在一场战争中战胜秦国。明置时，燕国军事+1。',
+    description: '燕国名将。在燕昭王时期，率军击败秦军，使秦国不得不退兵。',
+    quote: '剧辛为将，击秦军，大破之。 ——《史记·燕召公世家》'
+  },
+  {
+    id: '033',
+    name: '燕王哙',
+    country: '燕',
+    birthDeath: '不详-314',
+    type: CardType.HERO,
+    score: 4,
+    goal: '燕国政理值低于3。明置时，燕国政理-1。',
+    description: '燕国国君。在位期间，听信子之的谗言，将王位禅让给子之，导致燕国大乱。',
+    quote: '燕王哙贤人子之，禅以国。 ——《史记·燕召公世家》'
+  },
+  {
+    id: '034',
+    name: '荆轲',
+    country: '燕',
+    birthDeath: '不详-227',
+    type: CardType.HERO,
+    score: 6,
+    goal: '刺杀被打出结算。若你是在其打出的同一回合明置的此牌，获得2枚贡品标记。',
+    description: '燕国刺客。受燕太子丹之托，前往秦国刺杀秦王政，但最终失败。',
+    quote: '风萧萧兮易水寒，壮士一去兮不复还。 ——《史记·刺客列传》'
+  },
+  {
+    id: '035',
+    name: '燕太子丹',
+    country: '燕',
+    birthDeath: '不详-226',
+    type: CardType.HERO,
+    score: 4,
+    goal: '刺杀被打出结算。若你是在其打出的同一回合明置的此牌，获得2枚贡品标记。',
+    description: '燕国太子。曾在秦国为质子，后逃回燕国。为报复秦王政，派荆轲前往秦国刺杀秦王政，但最终失败。',
+    quote: '太子丹者，质于秦，亡归燕。 ——《史记·刺客列传》'
+  },
+  {
+    id: '036',
+    name: '田光',
+    country: '燕',
+    birthDeath: '不详-227',
+    type: CardType.HERO,
+    score: 2,
+    goal: '刺杀被打出结算。若你是在其打出的同一回合明置的此牌，获得2枚贡品标记。',
+    description: '燕国隐士。推荐荆轲给燕太子丹，为刺杀秦王政出谋划策。',
+    quote: '田光者，燕之处士也。 ——《史记·刺客列传》'
+  },
+  {
+    id: '037',
+    name: '高渐离',
+    country: '燕',
+    birthDeath: '不详-227',
+    type: CardType.HERO,
+    score: 2,
+    goal: '刺杀被打出结算。若你是在其打出的同一回合明置的此牌，获得2枚贡品标记。',
+    description: '燕国乐师。与荆轲一同前往秦国刺杀秦王政，但最终失败。',
+    quote: '高渐离击筑，荆轲和而歌。 ——《史记·刺客列传》'
+  },
+  {
+    id: '038',
+    name: '晏子',
+    country: '燕',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '燕国政理值高于6。明置时，燕国政理+1。',
+    description: '燕国大臣。在燕昭王时期，辅佐燕昭王治理国家，使燕国国力强盛。',
+    quote: '晏子相燕昭王，国以治。 ——《史记·燕召公世家》'
+  },
+  {
+    id: '039',
+    name: '郭隗',
+    country: '燕',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '燕国政理值高于6。明置时，燕国政理+1。',
+    description: '燕国隐士。燕昭王即位时，郭隗向其进献"招贤纳士"之策，使燕国人才辈出。',
+    quote: '燕昭王问郭隗曰："吾欲延贤，如何？" ——《史记·燕召公世家》'
+  },
+  // 韩国英雄
+  {
+    id: '040',
+    name: '韩昭侯',
+    country: '韩',
+    birthDeath: '不详-253',
+    type: CardType.HERO,
+    score: 10,
+    goal: '游戏结束时，韩国国力是全场唯一最高。如果游戏因韩国统一天下结束，你退出得分排名，直接共同获胜。',
+    description: '韩国国君。在位期间，重用申不害进行变法，使韩国国力强盛。但晚年因申不害去世，变法未能良好延续。',
+    quote: '韩昭侯时，国富兵强，中原之国莫能与之争。 ——《史记·韩世家》'
+  },
+  {
+    id: '041',
+    name: '申不害',
+    country: '韩',
+    birthDeath: '不详-337',
+    type: CardType.HERO,
+    score: 8,
+    goal: '韩国执行了变法。明置时，韩国政理+1。',
+    description: '法家代表人物。在韩国任相国期间，推行变法，使韩国国力强盛。他主张以法治国，但又不废除礼制，开创了"法术结合"的治国方略。',
+    quote: '申子之法，明君臣之分，序上下之礼，兴功劝赏，重罪严刑。 ——《韩非子·显学》'
+  },
+  {
+    id: '042',
+    name: '段规',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '韩国的经济高于9。',
+    description: '晋臣，他先劝谏韩虎向智伯低头献上万家城邑，又联合赵，魏，杀死智伯。在瓜分领地时，他又建议韩虎夺取成皋为根据地。为韩国的建国发挥了重要作用。',
+    quote: '王曰："善。"果取成皋，至韩之取郑也，果从成皋始。 ——《战国策·韩策一》'
+  },
+  {
+    id: '043',
+    name: '韩王安',
+    country: '韩',
+    birthDeath: '不详-230',
+    type: CardType.HERO,
+    score: 4,
+    goal: '韩国在一场战争中战胜秦国。明置时，韩国军事+1。',
+    description: '韩国国君。在位期间，韩国国力衰退，最终被秦国所灭。',
+    quote: '韩王安立，国以衰。 ——《史记·韩世家》'
+  },
+  {
+    id: '044',
+    name: '韩王倾',
+    country: '韩',
+    birthDeath: '不详-296',
+    type: CardType.HERO,
+    score: 2,
+    goal: '韩国在一场战争中战胜魏国。明置时，韩国军事+1。',
+    description: '韩国国君。在位期间，韩国国力衰退，但仍能与魏国抗衡。',
+    quote: '韩王倾立，国以衰。 ——《史记·韩世家》'
+  },
+  {
+    id: '045',
+    name: '韩仓',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '韩国在一场战争中战胜赵国。明置时，韩国军事+1。',
+    description: '韩国名将。在韩昭侯时期，率军击败赵军，使赵国不得不退兵。',
+    quote: '韩仓为将，击赵军，大破之。 ——《史记·韩世家》'
+  },
+  {
+    id: '046',
+    name: '公叔圭',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '韩国在一场战争中战胜楚国。明置时，韩国军事+1。',
+    description: '韩国名将。在韩昭侯时期，率军击败楚军，使楚国不得不退兵。',
+    quote: '公叔圭为将，击楚军，大破之。 ——《史记·韩世家》'
+  },
+  {
+    id: '047',
+    name: '公仲',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '韩国在一场战争中战胜齐国。明置时，韩国军事+1。',
+    description: '韩国名将。在韩昭侯时期，率军击败齐军，使齐国不得不退兵。',
+    quote: '公仲为将，击齐军，大破之。 ——《史记·韩世家》'
+  },
+  {
+    id: '048',
+    name: '张开地',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '韩国在一场战争中战胜燕国。明置时，韩国军事+1。',
+    description: '韩国名将。在韩昭侯时期，率军击败燕军，使燕国不得不退兵。',
+    quote: '张开地为将，击燕军，大破之。 ——《史记·韩世家》'
+  },
+  {
+    id: '049',
+    name: '公孙龙',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '韩国政理值高于6。明置时，韩国政理+1。',
+    description: '韩国大臣。在韩昭侯时期，辅佐韩昭侯治理国家，使韩国国力强盛。',
+    quote: '公孙龙相韩昭侯，国以治。 ——《史记·韩世家》'
+  },
+  {
+    id: '050',
+    name: '公孙固',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '韩国经济值高于6。明置时，韩国经济+1。',
+    description: '韩国大臣。在韩昭侯时期，主管经济，使韩国国力强盛。',
+    quote: '公孙固治国用，国以富。 ——《史记·韩世家》'
+  },
+  {
+    id: '051',
+    name: '公孙衍',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '韩国在一场战争中战胜秦国。明置时，韩国军事+1。',
+    description: '韩国名将。在韩昭侯时期，率军击败秦军，使秦国不得不退兵。',
+    quote: '公孙衍为将，击秦军，大破之。 ——《史记·韩世家》'
+  },
+  {
+    id: '052',
+    name: '公孙贾',
+    country: '韩',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '韩国在一场战争中战胜魏国。明置时，韩国军事+1。',
+    description: '韩国名将。在韩昭侯时期，率军击败魏军，使魏国不得不退兵。',
+    quote: '公孙贾为将，击魏军，大破之。 ——《史记·韩世家》'
+  },
+  // 赵国英雄
+  {
+    id: '053',
+    name: '赵武灵王',
+    country: '赵',
+    birthDeath: '前340-295',
+    type: CardType.HERO,
+    score: 10,
+    goal: '游戏结束时，赵国国力是全场唯一最高。如果游戏因赵国统一天下结束，你退出得分排名，直接共同获胜。',
+    description: '赵国国君。在位期间，推行胡服骑射，使赵国军事力量大增。他还重用蔺相如、廉颇等人，使赵国成为战国七雄中的强国。',
+    quote: '赵武灵王胡服骑射，国以强。 ——《史记·赵世家》'
+  },
+  {
+    id: '054',
+    name: '蔺相如',
+    country: '赵',
+    birthDeath: '前329-235',
+    type: CardType.HERO,
+    score: 8,
+    goal: '廉颇（赵）已被明置。明置时，赵国政理+1。',
+    description: '赵国大臣。在和氏璧事件中，以机智勇敢保全了和氏璧，又在澶台会上以言辞犀利使秦王退让。后来为了国家利益，甘愿屈居廉颇之下。',
+    quote: '臣愿得璧往使。今赵国小，而秦国强。臣有余忌，顾不足畏也。 ——《史记·廉颇蔺相如列传》'
+  },
+  {
+    id: '055',
+    name: '廉颇',
+    country: '赵',
+    birthDeath: '前327-243',
+    type: CardType.HERO,
+    score: 8,
+    goal: '蔺相如（赵）已被明置。明置时，赵国军事+1。',
+    description: '赵国名将。曾在伊阙之战中大败秦军，使秦军损失惨重。后来因为蔺相如的谦让，两人成为知己。',
+    quote: '廉颇为赵将，与秦战于伊阙，大破之。 ——《史记·廉颇蔺相如列传》'
+  },
+  {
+    id: '056',
+    name: '赵奢',
+    country: '赵',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '赵国在一场战争中战胜魏国。明置时，赵国军事+1。',
+    description: '赵国名将。在赵武灵王时期，率军击败魏军，使魏国不得不退兵。',
+    quote: '赵奢为将，击魏军，大破之。 ——《史记·赵世家》'
+  },
+  {
+    id: '057',
+    name: '赵括',
+    country: '赵',
+    birthDeath: '不详-260',
+    type: CardType.HERO,
+    score: 4,
+    goal: '赵国在一场战争中战败。明置时，赵国军事-1。',
+    description: '赵国名将赵奢之子。在长平之战中，因为不听廉颇的建议，贸然出战，导致赵军惨败，自己也战死沙场。',
+    quote: '赵括者，赵奢之子也，好为兵法。 ——《史记·廉颇蔺相如列传》'
+  },
+  {
+    id: '058',
+    name: '平原君',
+    country: '赵',
+    birthDeath: '不详-251',
+    type: CardType.HERO,
+    score: 6,
+    goal: '你已经明置了三个不同国家的英杰牌，且其中有楚国的英杰牌。',
+    description: '名赵胜，战国四公子之一。以招揽人才著称，门客数千人。在赵国危难之际，多次出使他国，为赵国争取援助。',
+    quote: '平原君之时，赵最强大，天下莫能与之争。 ——《史记·平原君列传》'
+  },
+  {
+    id: '059',
+    name: '李牧',
+    country: '赵',
+    birthDeath: '不详-229',
+    type: CardType.HERO,
+    score: 8,
+    goal: '赵国在一场战争中战胜秦国。明置时，赵国军事+1。',
+    description: '赵国名将。在赵国后期，多次击退秦军，保卫赵国。后来因为赵王迁听信谗言，被杀害。',
+    quote: '李牧为赵将，击秦军，大破之。 ——《史记·廉颇蔺相如列传》'
+  },
+  {
+    id: '060',
+    name: '赵王迁',
+    country: '赵',
+    birthDeath: '不详-228',
+    type: CardType.HERO,
+    score: 4,
+    goal: '赵国政理值低于3。明置时，赵国政理-1。',
+    description: '赵国国君。在位期间，听信谗言，杀害李牧，导致赵国被秦国所灭。',
+    quote: '赵王迁立，国以衰。 ——《史记·赵世家》'
+  },
+  {
+    id: '061',
+    name: '赵何',
+    country: '赵',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '赵国在一场战争中战胜韩国。明置时，赵国军事+1。',
+    description: '赵国名将。在赵武灵王时期，率军击败韩军，使韩国不得不退兵。',
+    quote: '赵何为将，击韩军，大破之。 ——《史记·赵世家》'
+  },
+  {
+    id: '062',
+    name: '公仲连',
+    country: '赵',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '赵国在一场战争中战胜楚国。明置时，赵国军事+1。',
+    description: '赵国名将。在赵武灵王时期，率军击败楚军，使楚国不得不退兵。',
+    quote: '公仲连为将，击楚军，大破之。 ——《史记·赵世家》'
+  },
+  {
+    id: '063',
+    name: '公孙龙',
+    country: '赵',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 2,
+    goal: '赵国政理值高于6。明置时，赵国政理+1。',
+    description: '赵国大臣。在赵武灵王时期，辅佐赵武灵王治理国家，使赵国国力强盛。',
+    quote: '公孙龙相赵武灵王，国以治。 ——《史记·赵世家》'
+  },
+  {
+    id: '064',
+    name: '公孙衍',
+    country: '赵',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 6,
+    goal: '赵国在一场战争中战胜秦国。明置时，赵国军事+1。',
+    description: '赵国名将。在赵武灵王时期，率军击败秦军，使秦国不得不退兵。',
+    quote: '公孙衍为将，击秦军，大破之。 ——《史记·赵世家》'
+  },
+  {
+    id: '065',
+    name: '赵豹',
+    country: '赵',
+    birthDeath: '不详',
+    type: CardType.HERO,
+    score: 4,
+    goal: '赵国在一场战争中战胜齐国。明置时，赵国军事+1。',
+    description: '赵国名将。在赵武灵王时期，率军击败齐军，使齐国不得不退兵。',
+    quote: '赵豹为将，击齐军，大破之。 ——《史记·赵世家》'
+  },
+  // 秦国英雄
+  {
+    id: '078',
+    name: '秦孝公',
+    country: '秦',
+    birthDeath: '前381-338',
+    type: CardType.HERO,
+    score: 10,
+    goal: '游戏结束时，秦国国力是全场唯一最高。如果游戏因秦国统一天下结束，你退出得分排名，直接共同获胜。',
+    description: '秦国国君。在位期间，重用商鞅变法，使秦国成为战国后期最强大的国家。',
+    quote: '秦孝公用商鞅之法，移风易俗，民以殷盛，国以富强。 ——《史记·商君列传》'
+  },
+  {
+    id: '079',
+    name: '商鞅',
+    country: '秦',
+    birthDeath: '前390-338',
+    type: CardType.HERO,
+    score: 8,
+    goal: '秦国执行了变法。明置时，秦国政理+1。',
+    description: '法家代表人物。在秦国任相国期间，推行变法，使秦国国力强盛。他主张以法治国，废除礼制，开创了"法家"的治国方略。',
+    quote: '商君之法，废礼义，行法治。 ——《史记·商君列传》'
+  },
+  {
+    id: '080',
+    name: '白起',
+    country: '秦',
+    birthDeath: '前332-257',
+    type: CardType.HERO,
+    score: 8,
+    goal: '秦国在一场战争中战胜赵国。明置时，秦国军事+1。',
+    description: '秦国名将。在长平之战中，大败赵军，坑杀赵军四十万，使赵国元气大伤。后来因为秦昭王的猜忌，被赐死。',
+    quote: '白起为秦将，与赵战于长平，大破之。 ——《史记·白起王翦列传》'
+  },
+  {
+    id: '081',
+    name: '秦昭王',
+    country: '秦',
+    birthDeath: '前325-251',
+    type: CardType.HERO,
+    score: 6,
+    goal: '秦国政理值高于7。明置时，秦国政理+1。',
+    description: '秦国国君。在位期间，重用范雎、白起等人，使秦国成为战国后期最强大的国家。',
+    quote: '秦昭王用范雎之计，并六国之地。 ——《史记·范雎蔡泽列传》'
+  },
+  {
+    id: '082',
+    name: '范雎',
+    country: '秦',
+    birthDeath: '前318-255',
+    type: CardType.HERO,
+    score: 6,
+    goal: '秦国在一场战争中战胜魏国。明置时，秦国军事+1。',
+    description: '秦国大臣。在秦昭王时期，提出"远交近攻"的策略，使秦国逐渐统一天下。',
+    quote: '范雎为秦相，计谋甚众。 ——《史记·范雎蔡泽列传》'
+  },
+  {
+    id: '083',
+    name: '王翦',
+    country: '秦',
+    birthDeath: '前?-?',
+    type: CardType.HERO,
+    score: 8,
+    goal: '秦国在一场战争中战胜楚国。明置时，秦国军事+1。',
+    description: '秦国名将。在秦始皇时期，率军攻破楚国，为秦国统一天下立下汗马功劳。',
+    quote: '王翦为秦将，与楚战，大破之。 ——《史记·白起王翦列传》'
+  },
+  {
+    id: '084',
+    name: '蒙骜',
+    country: '秦',
+    birthDeath: '前?-?',
+    type: CardType.HERO,
+    score: 6,
+    goal: '秦国在一场战争中战胜韩国。明置时，秦国军事+1。',
+    description: '秦国名将。在秦昭王时期，率军攻打韩国，为秦国统一天下立下汗马功劳。',
+    quote: '蒙骜为秦将，与韩战，大破之。 ——《史记·白起王翦列传》'
+  },
+  {
+    id: '085',
+    name: '司马错',
+    country: '秦',
+    birthDeath: '前?-?',
+    type: CardType.HERO,
+    score: 4,
+    goal: '秦国在一场战争中战胜齐国。明置时，秦国军事+1。',
+    description: '秦国名将。在秦昭王时期，率军攻打齐国，为秦国统一天下立下汗马功劳。',
+    quote: '司马错为秦将，与齐战，大破之。 ——《史记·白起王翦列传》'
+  },
+  {
+    id: '086',
+    name: '嫪毐',
+    country: '秦',
+    birthDeath: '前?-238',
+    type: CardType.HERO,
+    score: 4,
+    goal: '秦国政理值低于3。明置时，秦国政理-1。',
+    description: '秦国大臣。在秦国后期，因为与太后私通，被处死。',
+    quote: '嫪毐为秦相，乱政。 ——《史记·秦本纪》'
+  },
+  {
+    id: '087',
+    name: '甘龙',
+    country: '秦',
+    birthDeath: '前?-?',
+    type: CardType.HERO,
+    score: 2,
+    goal: '秦国政理值高于6。明置时，秦国政理+1。',
+    description: '秦国大臣。在秦孝公时期，辅佐秦孝公治理国家，使秦国国力强盛。',
+    quote: '甘龙相秦孝公，国以治。 ——《史记·秦本纪》'
+  },
+  {
+    id: '088',
+    name: '杜挚',
+    country: '秦',
+    birthDeath: '前?-?',
+    type: CardType.HERO,
+    score: 2,
+    goal: '秦国政理值高于6。明置时，秦国政理+1。',
+    description: '秦国大臣。在秦孝公时期，辅佐秦孝公治理国家，使秦国国力强盛。',
+    quote: '杜挚相秦孝公，国以治。 ——《史记·秦本纪》'
+  },
+  {
+    id: '089',
+    name: '魏冉',
+    country: '秦',
+    birthDeath: '前?-?',
+    type: CardType.HERO,
+    score: 4,
+    goal: '秦国经济值高于6。明置时，秦国经济+1。',
+    description: '秦国大臣。在秦孝公时期，主管经济，使秦国国力强盛。',
+    quote: '魏冉治国用，国以富。 ——《史记·秦本纪》'
+  },
+  // 无所属英杰
+  {
+    id: '090',
+    name: '公孙龙',
+    country: null,
+    birthDeath: '前320-250',
+    type: CardType.HERO_NEUTRAL,
+    score: 2,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '名家代表人物，以"白马非马"和"离坚白"而闻名。公孙龙是诡辩学的代表，提出了逻辑学中的"个别"和"一般"之间的相互关系。',
+    quote: '白者，所以命色也。命色者，非命形也，故曰白马非马。 ——《公孙龙子》'
+  },
+  {
+    id: '091',
+    name: '惠施',
+    country: null,
+    birthDeath: '前370-310',
+    type: CardType.HERO_NEUTRAL,
+    score: 2,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '名家代表人物，以"一尺之捶，日取其半，万世不竭"等十事著名。他提出了"天地一体"、"万物一体"的思想。',
+    quote: '泰山与毫末同高，天地与秋毫同长。 ——《庄子·天下》'
+  },
+  {
+    id: '092',
+    name: '墨子',
+    country: null,
+    birthDeath: '前468-376',
+    type: CardType.HERO_NEUTRAL,
+    score: 4,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '墨家创始人，主张"兼爱"、"非攻"、"尚贤"等思想。他还精通机械制造，发明了许多防御器械。',
+    quote: '爱无差等，施无偏颇。 ——《墨子·兼爱》'
+  },
+  {
+    id: '093',
+    name: '庄子',
+    country: null,
+    birthDeath: '前369-286',
+    type: CardType.HERO_NEUTRAL,
+    score: 4,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '道家代表人物，著有《庄子》。他主张"逍遥"、"无为"的思想，对后世影响深远。',
+    quote: '庄周梦蝶，蝶梦庄周。 ——《庄子·齐物论》'
+  },
+  {
+    id: '094',
+    name: '孟子',
+    country: null,
+    birthDeath: '前372-289',
+    type: CardType.HERO_NEUTRAL,
+    score: 6,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '儒家代表人物，著有《孟子》。他提出"仁政"思想，主张"民贵君轻"，被后世尊称为"亚圣"。',
+    quote: '民为贵，社稷次之，君为轻。 ——《孟子·尽心下》'
+  },
+  {
+    id: '095',
+    name: '荀子',
+    country: null,
+    birthDeath: '前313-238',
+    type: CardType.HERO_NEUTRAL,
+    score: 6,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '儒家代表人物，著有《荀子》。他主张"性恶论"，认为人性本恶，必须通过教化才能成为善人。',
+    quote: '人之性恶，其善者伪也。 ——《荀子·性恶》'
+  },
+  {
+    id: '096',
+    name: '鬼谷子',
+    country: null,
+    birthDeath: '前?-?',
+    type: CardType.HERO_NEUTRAL,
+    score: 8,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '纵横家创始人，著有《鬼谷子》。他是苏秦、张仪的老师，精通权谋之术。',
+    quote: '圣人之道，在乎变通。 ——《鬼谷子·本经阴符》'
+  },
+  {
+    id: '097',
+    name: '苏秦',
+    country: null,
+    birthDeath: '前?-284',
+    type: CardType.HERO_NEUTRAL,
+    score: 6,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '纵横家代表人物，鬼谷子弟子。他提出"合纵"策略，联合六国抗秦，一度成为六国相印。',
+    quote: '合纵连横，强弱相倾。 ——《史记·苏秦列传》'
+  },
+  {
+    id: '098',
+    name: '张仪',
+    country: null,
+    birthDeath: '前?-309',
+    type: CardType.HERO_NEUTRAL,
+    score: 6,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '纵横家代表人物，鬼谷子弟子。他提出"连横"策略，主张各国与秦国结盟，最终成为秦国相印。',
+    quote: '连横合从，强弱相制。 ——《史记·张仪列传》'
+  },
+  {
+    id: '099',
+    name: '田文',
+    country: null,
+    birthDeath: '前?-?',
+    type: CardType.HERO_NEUTRAL,
+    score: 4,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '纵横家代表人物。他善于游说，曾游说齐国、楚国等国，为各国出谋划策。',
+    quote: '田文善谈说，游诸侯。 ——《史记·田文列传》'
+  },
+  {
+    id: '100',
+    name: '邹衍',
+    country: null,
+    birthDeath: '前305-240',
+    type: CardType.HERO_NEUTRAL,
+    score: 4,
+    goal: '可以在任意回合结束时明置。明置时，你可以弃置2枚贡品标记，然后出1张牌。',
+    description: '阴阳家创始人，著有《邹衍》。他提出"五德终始"说，认为历史发展有一定规律。',
+    quote: '邹衍论天地之间，推行五德。 ——《史记·邹衍列传》'
+  },
+];
+
+// 人和牌数据
+const renheCards = [
+  // 军略牌
+  {
+    id: 'R001',
+    name: '战争',
+    type: 'military',
+    effect: {
+      type: 'battle',
+      description: '指定两个未灭亡的国家进行战争。计算战力：初始战力=军事值，援兵加成每张+1，各掷1枚骰子。战败方国力减少双方战力之差，战胜方经济+1，政理+1，获得称霸标记。'
+    },
+    targetRequirements: {
+      type: 'country',
+      count: 2
+    }
+  },
+  {
+    id: 'R002',
+    name: '援兵',
+    type: 'military',
+    effect: {
+      type: 'support',
+      value: 1,
+      description: '在战争结算时使用，为一方提供+1战力。数量不限，掷骰前使用。'
+    },
+    targetRequirements: {
+      type: 'battle',
+      count: 1
+    }
+  },
+  {
+    id: 'R003',
+    name: '庙算',
+    type: 'military',
+    effect: {
+      type: 'strategy',
+      value: 3,
+      duration: 1,
+      description: '放置在目标国家上，下一场战争+3战力。同一国家只能有一张。'
+    },
+    targetRequirements: {
+      type: 'country',
+      count: 1
+    }
+  },
+  // 密谋牌
+  {
+    id: 'R004',
+    name: '刺杀',
+    type: 'plot',
+    effect: {
+      type: 'assassination',
+      description: '指定一个未灭亡的国家，可追加多张刺杀。掷N个骰子（N为刺杀数量），结果>5时成功：最高属性减半（向上取整）。失败时所有密谋牌弃置。'
+    },
+    targetRequirements: {
+      type: 'country',
+      count: 1
+    }
+  },
+  {
+    id: 'R005',
+    name: '议和',
+    type: 'plot',
+    effect: {
+      type: 'peace',
+      description: '在战争结算时使用，可追加多张议和。掷N个骰子（N为议和数量），结果>5时成功：取消战争，收回援兵。失败时所有密谋牌弃置。'
+    },
+    targetRequirements: {
+      type: 'battle',
+      count: 1
+    }
+  },
+  {
+    id: 'R006',
+    name: '复辟',
+    type: 'plot',
+    effect: {
+      type: 'restoration',
+      description: '指定一个已灭亡的国家，可追加多张复辟。掷N个骰子（N为复辟数量），结果>5时成功：国家复活，所有属性设为4。失败时所有密谋牌弃置。'
+    },
+    targetRequirements: {
+      type: 'country',
+      count: 1,
+      condition: 'destroyed'
+    }
+  },
+  // 内政牌
+  {
+    id: 'R007',
+    name: '赋税',
+    type: 'internal',
+    effect: {
+      type: 'economy',
+      value: 2,
+      description: '指定一个未灭亡的国家，经济+2。'
+    },
+    targetRequirements: {
+      type: 'country',
+      count: 1
+    }
+  },
+  {
+    id: 'R008',
+    name: '变法',
+    type: 'internal',
+    effect: {
+      type: 'reform',
+      changes: {
+        economy: -2,
+        politics: 2
+      },
+      description: '指定一个未灭亡的国家，条件：经济>政理。经济-2，政理+2。'
+    },
+    targetRequirements: {
+      type: 'country',
+      count: 1,
+      condition: 'economy_gt_politics'
+    }
+  },
+  {
+    id: 'R009',
+    name: '征兵',
+    type: 'internal',
+    effect: {
+      type: 'military',
+      changes: {
+        economy: -2,
+        military: 2
+      },
+      description: '指定一个未灭亡的国家，条件：经济>军事。经济-2，军事+2。'
+    },
+    targetRequirements: {
+      type: 'country',
+      count: 1,
+      condition: 'economy_gt_military'
+    }
+  }
+];
+
+// 天时牌数据
+const tianshiCards = [
+  {
+    id: 'T001',
+    name: '各据一方',
+    effect: '本回合"周天子"失去效果。'
+  },
+  {
+    id: 'T002',
+    name: '开诚布公',
+    effect: '所有手中有暗置英杰牌的玩家选择一张并展示。本回合权谋阶段，玩家出牌改为面朝上打出。'
+  },
+  {
+    id: 'T003',
+    name: '一字千金',
+    effect: '本回合权谋阶段，仅进行第一轮出牌结算。盟主获得3枚地利标记。'
+  },
+  {
+    id: 'T004',
+    name: '按甲休兵',
+    effect: '本回合所有战争全部跳过结算。'
+  },
+  {
+    id: 'T005',
+    name: '穷兵黩武',
+    effect: '所有的国家若经济高于军事，则进行一次征兵。本回合所有的战争中，援兵视为+2战力，战胜方将获得额外1枚称霸标记。'
+  },
+  {
+    id: 'T006',
+    name: '各有千秋',
+    effect: '本回合权谋阶段，先机区域和远谋区域的所有奖励均替换为先机、远谋牌。'
+  },
+  {
+    id: 'T007',
+    name: '偷天换日',
+    effect: '盟主从未使用的天时牌中随机抽取2张，然后选择1张生效。'
+  },
+  {
+    id: 'T008',
+    name: '诸侯问政 / 闭关绝市 / 民心不壹',
+    effect: '由盟主掷一枚骰子。结果决定本回合所有国家军事/经济/政理无法增加。'
+  },
+  {
+    id: 'T009',
+    name: '英雄辈出',
+    effect: '由盟主决定方向，每个玩家选择一个英杰牌堆，摸2张英杰牌，保留1张，另1张放回牌堆底。'
+  },
+  {
+    id: 'T010',
+    name: '按部就班',
+    effect: '本回合无法打出神机牌。玩家可以在筹谋阶段弃置自己的神机牌，获得3点行动力。'
+  },
+  {
+    id: 'T011',
+    name: '万象更新',
+    effect: '所有玩家弃置手中任意数量的人和牌或史实牌，之后从人和牌堆重新抓取等量的人和牌。盟主额外抓1张。'
+  },
+  {
+    id: 'T012',
+    name: '流年不利',
+    effect: '由盟主决定方向，每个玩家选择：弃置2张手牌，或弃置2枚地利标记，或弃置2枚贡品标记。'
+  },
+  {
+    id: 'T013',
+    name: '推心置腹',
+    effect: '由盟主决定方向，每个玩家选择3张手牌传给左手/右手边玩家。'
+  },
+  {
+    id: 'T014',
+    name: '塞外春回 / 天子南巡',
+    effect: '由盟主掷一枚骰子。结果为1~3：秦，楚以外国家政理+1；结果为4~6：燕，赵以外国家政理+1。'
+  },
+  {
+    id: 'T015',
+    name: '饥馑之年 / 物阜民丰',
+    effect: '由盟主掷一枚骰子。结果为1~3：所有国家经济-1； 结果为4~6：所有国家经济+1。'
+  },
+  {
+    id: 'T016',
+    name: '铸剑为犁 / 遣将征兵',
+    effect: '由盟主掷一枚骰子。结果为1~3：所有国家军事-1； 结果为4~6：所有国家军事+1。'
+  },
+  {
+    id: 'T017',
+    name: '坑儒焚典 / 百家争鸣',
+    effect: '由盟主掷一枚骰子。结果为1~3：所有国家政理-1； 结果为4~6：所有国家政理+1。'
+  },
+  {
+    id: 'T018',
+    name: '天时清平',
+    effect: '盟主摸2张人和牌；本回合筹谋阶段所有玩家行动力+2。'
+  },
+  {
+    id: 'T019',
+    name: '地尽其利',
+    effect: '盟主获得2枚地利标记；本回合筹谋阶段，玩家的1点行动力可以换取2枚地利标记。'
+  },
+  {
+    id: 'T020',
+    name: '政通人和',
+    effect: '所有玩家摸1张人和牌。本回合内政牌增加的经济和政理额外+1。'
+  },
+  {
+    id: 'T021',
+    name: '称臣纳贡',
+    effect: '本回合争雄开始前，每个玩家可以选择将至多3枚地利标记换为贡品标记。'
+  },
+  {
+    id: 'T022',
+    name: '奉天承运',
+    effect: '本回合争雄阶段，每个玩家掷骰子三枚，以点数最高者决定下回合盟主。'
+  },
+  {
+    id: 'T023',
+    name: '蚕食鲸吞',
+    effect: '将"周天子"移出游戏。国力最高/次高的国家与国力最低/次低的国家分别进行战争。如果有并列，盟主选择国家。'
+  },
+  {
+    id: 'T024',
+    name: '共襄义举',
+    effect: '所有手中有暗置英杰牌的玩家选择一张并展示。被展示英杰最多的两个国家经济+2。如果有并列，由诸侯盟主决定。'
+  }
+];
+
+// 根据玩家数量获取天时牌堆
+function getTianshiDeck(playerCount) {
+  // 根据玩家数量确定天时牌数量
+  const cardCount = {
+    3: 12,
+    4: 10,
+    5: 9,
+    6: 8,
+    7: 8
+  }[playerCount] || 8; // 默认使用8张
+
+  // 随机打乱天时牌并返回指定数量
+  return shuffleArray([...tianshiCards]).slice(0, cardCount);
+}
+
+// 洗牌函数
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// 根据国家获取英杰牌堆
+function getHeroDeckByCountry(country) {
+  return heroCards.filter(card => card.country === country);
+}
+
+// 获取无所属英杰牌堆
+function getNeutralHeroDeck() {
+  return heroCards.filter(card => !card.country);
+}
+
+module.exports = {
+  heroCards,
+  renheCards,
+  tianshiCards,
+  getTianshiDeck,
+  getHeroDeckByCountry,
+  getNeutralHeroDeck
+}; 

@@ -1,0 +1,134 @@
+.tianshi-area {
+  margin-top: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+.tianshi-deck {
+  width: 120px;
+  height: 180px;
+  border: 2px solid #d9d9d9;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+}
+
+.deck-count {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.deck-hint {
+  font-size: 12px;
+  color: #666;
+}
+
+.active-tianshi {
+  flex: 1;
+}
+
+.tianshi-card {
+  border: 2px solid #1890ff;
+  border-radius: 8px;
+  padding: 16px;
+  height: 180px;
+  background: #e6f7ff;
+}
+
+.tianshi-card.empty {
+  border-color: #d9d9d9;
+  background: #f5f5f5;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #666;
+}
+
+.tianshi-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #1890ff;
+}
+
+.tianshi-deck-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow: auto;
+}
+
+.modal-header {
+  padding: 16px;
+  border-bottom: 1px solid #d9d9d9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.modal-header button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+.modal-body {
+  padding: 16px;
+}
+
+.deck-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.deck-card {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 12px;
+  position: relative;
+}
+
+.card-index {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: #666;
+  font-size: 12px;
+}
+
+.deck-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #1890ff;
+}
+
+.no-cards {
+  text-align: center;
+  color: #666;
+  padding: 32px;
+} 

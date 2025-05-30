@@ -1,0 +1,54 @@
+# 依赖
+node_modules/
+/.pnp
+.pnp.js
+
+# 测试覆盖率
+/coverage
+
+# 生产环境构建文件
+/client/build/
+/client/dist/
+/server/dist/
+
+# 环境变量文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 日志文件
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs
+*.log
+
+# IDE和编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# 缓存
+.cache/
+.next/
+.nuxt/
+dist/
+.temp/
+
+# 其他
+*.pid
+*.seed
+*.pid.lock
+.env.*.local
+.eslintcache
+.node_repl_history
+.yarn-integrity 
