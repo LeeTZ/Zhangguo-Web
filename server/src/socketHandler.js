@@ -1,4 +1,5 @@
 const GameCore = require('./gameCore').GameCore;
+const { heroCards, qiHeroes, chuHeroes, yanHeroes, hanHeroes, zhaoHeroes, weiHeroes, qinHeroes } = require('./data/heroes');
 
 class SocketHandler {
   constructor(io) {
@@ -10,7 +11,26 @@ class SocketHandler {
 
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
-      console.log(`Player connected: ${socket.id}`);
+      console.log(`[Socket] 玩家已连接: ${socket.id}`);
+
+      // 获取英雄数据
+      socket.on('get_heroes_data', (callback) => {
+        try {
+          const heroesData = {
+            '齐': qiHeroes,
+            '楚': chuHeroes,
+            '燕': yanHeroes,
+            '韩': hanHeroes,
+            '赵': zhaoHeroes,
+            '魏': weiHeroes,
+            '秦': qinHeroes
+          };
+          callback({ success: true, data: heroesData });
+        } catch (error) {
+          console.error('[Socket] 获取英雄数据失败:', error);
+          callback({ success: false, error: '获取英雄数据失败' });
+        }
+      });
 
       // 登录
       socket.on('login', (data) => {
@@ -59,9 +79,15 @@ class SocketHandler {
         this.handleStartGame(socket, roomId);
       });
 
+      // 选择国家
+      socket.on('select_country', (data, callback) => {
+        const { roomId, countryId } = data;
+        this.handleSelectCountry(socket, roomId, countryId, callback);
+      });
+
       // 断开连接
       socket.on('disconnect', () => {
-        console.log(`Socket disconnected: ${socket.id}`);
+        console.log(`[Socket] 玩家已断开连接: ${socket.id}`);
         this.handleDisconnect(socket);
       });
 
@@ -484,17 +510,11 @@ class SocketHandler {
     // 开始游戏，确保使用正确的玩家ID
     room.status = 'playing';
     const gamePlayers = room.players.map(p => ({
-      id: p.playerId,  // 使用playerId而不是socketId
+      id: p.playerId,
       name: p.name
     }));
     console.log('Creating game with players:', gamePlayers);
     room.gameCore = new GameCore(gamePlayers);
-
-    // 设置初始游戏阶段为英杰牌选择阶段
-    room.gameCore.phase = 'initial_selection';
-
-    // 抽取第一张天时牌
-    room.gameCore.drawAndActivateTianshiCard();
 
     // 获取初始游戏状态
     const gameState = room.gameCore.getState();
@@ -512,7 +532,7 @@ class SocketHandler {
     // 查找断开连接的玩家
     for (const [playerName, session] of this.playerSessions.entries()) {
       if (session.socketId === socket.id) {
-        console.log(`Player ${playerName} disconnected, starting cleanup timer`);
+        console.log(`[Socket] 玩家 ${playerName} 断开连接，启动清理计时器`);
         
         // 如果已经有计时器，先清除它
         if (session.disconnectTimer) {
@@ -521,12 +541,10 @@ class SocketHandler {
 
         // 设置延迟清理计时器
         session.disconnectTimer = setTimeout(() => {
-          console.log(`Cleanup timer triggered for player ${playerName}`);
-          
           // 再次检查玩家是否真的离线
           const currentSession = this.playerSessions.get(playerName);
           if (!currentSession || currentSession.socketId === socket.id) {
-            console.log(`Player ${playerName} is still offline, cleaning up`);
+            console.log(`[Socket] 玩家 ${playerName} 仍然离线，开始清理`);
             
             // 如果玩家在房间中，从房间移除
             if (session.roomId) {
@@ -534,11 +552,9 @@ class SocketHandler {
               if (room) {
                 const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
                 if (playerIndex !== -1) {
-                  console.log(`Removing player ${playerName} from room ${session.roomId}`);
                   room.players.splice(playerIndex, 1);
                   
                   if (room.players.length === 0) {
-                    console.log(`Room ${session.roomId} is empty, deleting it`);
                     this.games.delete(session.roomId);
                   } else {
                     // 如果房主离开，转移房主权限
@@ -566,10 +582,8 @@ class SocketHandler {
             // 删除会话
             this.playerSessions.delete(playerName);
             this.broadcastRoomList();
-          } else {
-            console.log(`Player ${playerName} has reconnected, cleanup cancelled`);
           }
-        }, 30000); // 增加到30秒
+        }, 30000); // 30秒后清理
       }
     }
   }
@@ -702,39 +716,39 @@ class SocketHandler {
   // 添加游戏状态同步处理
   handleRequestGameSync(socket, data) {
     const { roomId } = data;
-    console.log(`Received game sync request for room ${roomId}`);
-    
     const room = this.games.get(roomId);
+    
     if (!room) {
-      socket.emit('error', { message: '房间不存在' });
+      console.error('[游戏同步] 错误: 未找到游戏实例:', roomId);
+      socket.emit('error', { message: '游戏不存在' });
       return;
     }
 
-    const playerSession = Array.from(this.playerSessions.entries())
-      .find(([_, session]) => session.socketId === socket.id);
-
-    if (!playerSession) {
-      socket.emit('error', { message: '未找到玩家会话' });
+    // 如果游戏还没有开始，发送等待状态
+    if (!room.gameCore) {
+      const waitingState = {
+        phase: 'waiting',
+        players: room.players.map(p => ({
+          id: p.playerId,
+          sessionId: p.sessionId,
+          username: p.name,
+          isHost: p.isHost
+        }))
+      };
+      socket.emit('game_state_update', waitingState);
       return;
     }
 
-    const [playerName, session] = playerSession;
-    const player = room.players.find(p => p.name === playerName);
-
-    if (!player) {
-      socket.emit('error', { message: '您不在该房间中' });
-      return;
-    }
-
-    // 获取并发送游戏状态
+    // 获取游戏状态
     const gameState = this.getGameState(roomId);
-    if (gameState) {
-      console.log(`Syncing game state to player ${playerName}:`, gameState);
-      socket.emit('game_sync', {
-        roomId,
-        gameState
-      });
+    if (!gameState) {
+      console.error('[游戏同步] 错误: 无法获取游戏状态');
+      socket.emit('error', { message: '无法获取游戏状态' });
+      return;
     }
+
+    console.log(`[游戏同步] 发送游戏状态到 ${socket.id}, 阶段: ${gameState.phase}`);
+    socket.emit('game_state_update', gameState);
   }
 
   getGameState(roomId) {
@@ -744,6 +758,10 @@ class SocketHandler {
     }
 
     const gameState = room.gameCore.getState();
+    console.log('[游戏状态] 从游戏核心获取状态:', {
+      phase: gameState.phase,
+      currentPlayer: gameState.currentPlayer
+    });
 
     // 确保每个玩家的信息都包含完整的手牌
     const players = room.players.map(player => {
@@ -751,37 +769,72 @@ class SocketHandler {
       const playerInGame = room.gameCore.players.find(p => 
         p.id === player.playerId || 
         p.id === player.id || 
-        p.id === player.sessionId
+        p.sessionId === player.id
       );
 
-      console.log(`Finding player in game for ${player.name}:`, playerInGame);
+      // 获取玩家的临时英雄牌（用于初始选择阶段）
+      const tempHeroCards = playerInGame?.tempHeroCards || [];
 
-      return {
+      // 确保手牌信息完整
+      const hand = playerInGame?.hand || {
+        hero: [],
+        heroNeutral: [],
+        renhe: [],
+        shishi: [],
+        shenqi: []
+      };
+
+      // 如果是机器人玩家，使用其在游戏核心中的实际手牌
+      const isBot = player.name.startsWith('Bot');
+      const finalHand = isBot ? playerInGame?.hand : hand;
+
+      const formattedPlayer = {
         id: player.playerId || player.id,
         sessionId: player.sessionId,
         username: player.name,
+        isBot: isBot,
         isHost: player.isHost,
-        ready: player.isReady,
-        hand: playerInGame?.hand || {
-          hero: [],
-          heroNeutral: [],
-          renhe: [],
-          shishi: [],
-          shenqi: []
+        hand: {
+          hero: finalHand?.hero || [],
+          heroNeutral: finalHand?.heroNeutral || [],
+          renhe: finalHand?.renhe || [],
+          shishi: finalHand?.shishi || [],
+          shenqi: finalHand?.shenqi || []
         },
         geoTokens: playerInGame?.geoTokens || 3,
-        tributeTokens: playerInGame?.tributeTokens || 0
+        tributeTokens: playerInGame?.tributeTokens || 0,
+        tempHeroCards: isBot ? [] : tempHeroCards
       };
+
+      return formattedPlayer;
     });
 
-    console.log('Processed players with hands:', players);
+    // 查找当前玩家在游戏核心中的信息
+    const currentPlayerInGame = gameState.currentPlayer ? 
+      room.gameCore.players.find(p => p.id === gameState.currentPlayer.id) : null;
 
-    return {
+    console.log('[游戏状态] 当前玩家信息:', {
+      currentPlayerId: gameState.currentPlayer?.id,
+      tempHeroCards: currentPlayerInGame?.tempHeroCards
+    });
+
+    const finalState = {
       ...gameState,
       roomId,
       currentPlayer: room.gameCore.getCurrentPlayer(),
-      players: players
+      players: players,
+      // 修改初始英雄牌的获取逻辑
+      initialCards: gameState.phase === 'initial_hero_selection' && currentPlayerInGame ? 
+        currentPlayerInGame.tempHeroCards || [] : []
     };
+
+    console.log('[游戏状态] 最终状态:', {
+      phase: finalState.phase,
+      currentPlayerId: finalState.currentPlayer?.id,
+      initialCardsCount: finalState.initialCards.length
+    });
+
+    return finalState;
   }
 
   handleSelectHeroCards(socket, data) {
@@ -886,6 +939,73 @@ class SocketHandler {
         success: false, 
         error: error.message || '选择英雄失败' 
       });
+    }
+  }
+
+  handleSelectCountry(socket, roomId, countryId, callback) {
+    console.log(`Player selecting country ${countryId} in room ${roomId}`);
+    
+    const room = this.games.get(roomId);
+    if (!room || !room.gameCore) {
+      callback({ success: false, error: '房间不存在或游戏未开始' });
+      return;
+    }
+
+    // 找到当前玩家
+    const playerSession = Array.from(this.playerSessions.entries())
+      .find(([_, session]) => session.socketId === socket.id);
+
+    if (!playerSession) {
+      callback({ success: false, error: '未找到玩家会话' });
+      return;
+    }
+
+    const [playerName, session] = playerSession;
+    const player = room.players.find(p => p.name === playerName);
+
+    if (!player) {
+      callback({ success: false, error: '您不在该房间中' });
+      return;
+    }
+
+    try {
+      // 在游戏核心中处理国家选择
+      room.gameCore.selectCountry(player.playerId, countryId);
+      
+      // 让机器人玩家自动选择国家
+      const botPlayers = room.players.filter(p => p.name.startsWith('Bot'));
+      const availableCountries = room.gameCore.getAvailableCountries();
+      
+      console.log('Bot players:', botPlayers);
+      console.log('Available countries:', availableCountries);
+      
+      botPlayers.forEach(bot => {
+        if (!bot.selectedCountry && availableCountries.length > 0) {
+          // 随机选择一个可用的国家
+          const randomIndex = Math.floor(Math.random() * availableCountries.length);
+          const selectedCountry = availableCountries[randomIndex];
+          
+          console.log(`Bot ${bot.name} selecting country: ${selectedCountry}`);
+          try {
+            room.gameCore.selectCountry(bot.playerId, selectedCountry);
+            availableCountries.splice(randomIndex, 1);
+          } catch (error) {
+            console.error(`Error in bot ${bot.name} country selection:`, error);
+          }
+        }
+      });
+
+      // 广播更新后的游戏状态
+      const gameState = this.getGameState(roomId);
+      if (gameState) {
+        console.log('Broadcasting game state update after country selection:', gameState);
+        this.io.to(roomId).emit('game_state_update', gameState);
+      }
+
+      callback({ success: true });
+    } catch (error) {
+      console.error('Error selecting country:', error);
+      callback({ success: false, error: error.message });
     }
   }
 }

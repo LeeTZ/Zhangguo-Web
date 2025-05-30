@@ -78,7 +78,7 @@ const HeroCardTag = styled.div<{ country?: string }>`
       case '赵': return '#b37feb';
       case '魏': return '#ff85c0';
       case '秦': return '#40a9ff';
-      default: return '#d9d9d9';
+      default: return '#8c8c8c';
     }
   }};
   color: white;
@@ -176,8 +176,16 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           )}
         </InfoGrid>
         <HeroCardList>
-          {heroCards.map((hero, index) => (
-            <Tooltip key={hero.id || index} title={hero.effect}>
+          {heroCards.filter(hero => hero != null).map((hero, index) => (
+            <Tooltip key={hero.id || index} title={
+              <>
+                <div>国家：{hero.country || '无所属'}</div>
+                {hero.birthDeath && <div>生卒：{hero.birthDeath}</div>}
+                <div>目标：{hero.goal}</div>
+                <div>描述：{hero.description}</div>
+                {hero.quote && <div>"{hero.quote}"</div>}
+              </>
+            }>
               <HeroCardTag country={hero.country}>
                 {hero.name}
               </HeroCardTag>
@@ -198,7 +206,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           </Button>
         ]}
       >
-        {heroCards.map((hero) => (
+        {heroCards.filter(hero => hero != null).map((hero) => (
           <HeroDetailCard key={hero.id}>
             <HeroTitle>{hero.name}</HeroTitle>
             <HeroInfo>

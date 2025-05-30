@@ -1,7 +1,7 @@
 // 游戏阶段定义
 const GamePhase = {
   WAITING: 'waiting',           // 等待玩家加入
-  INITIAL_SELECTION: 'initial_selection', // 初始英雄选择阶段
+  INITIAL_HERO_SELECTION: 'initial_hero_selection', // 初始英雄选择阶段
   PLAYING: 'playing',          // 游戏进行中
   FINISHED: 'finished'         // 游戏结束
 };

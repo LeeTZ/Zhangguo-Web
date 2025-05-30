@@ -2,11 +2,11 @@ import { io, Socket } from 'socket.io-client';
 import { store } from './store';
 import {
   updateGameState,
-  setGamePhase,
+  setPhase,
   setCurrentPlayer,
   updatePlayers,
   updateDeckCounts,
-  updateMarket
+  setMarket
 } from './store/gameSlice';
 import { setCurrentRoom, updateRoom, setRooms } from './store/roomSlice';
 import { GameState, Player, CardType, ServerRoom } from './store/types';

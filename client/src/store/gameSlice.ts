@@ -1,27 +1,15 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { GameState, CardType, Country, GamePhase } from './types';
+import { GameState, Player, CardType, Country } from './types';
+import { GamePhase } from '../types/game';
 import type { Draft } from 'immer';
 
-// 定义Player接口
-export interface Player {
-  id: string;
-  name: string;
-  hand: {
-    hero: CardType[];
-    heroNeutral: CardType[];
-    renhe: CardType[];
-    shishi: CardType[];
-    shenqi: CardType[];
-  };
-  geoTokens: number;
-  tributeTokens: number;
-  isHost: boolean;
-}
+// 将 Player 转换为 WritableDraft<Player>
+type WritablePlayer = Draft<Player>;
 
 // 初始状态
 const initialState: GameState = {
-  phase: GamePhase.WAITING,
-  round: 1,
+  phase: 'waiting',
+  round: 0,
   currentPlayerId: null,
   currentPlayer: null,
   players: [],
@@ -35,39 +23,48 @@ const initialState: GameState = {
     qin: { name: '秦国', military: 3, economy: 2, politics: 2, hasKingToken: false, hegemony: 0 }
   },
   decks: {
-    tianshi: 24,
-    hero: 30,
-    heroNeutral: 10,
-    renhe: 30,
-    shishi: 30,
-    shenqi: 20,
-    xianji: 20,
-    yuanmou: 20
+    tianshi: 0,
+    hero: 0,
+    heroNeutral: 0,
+    renhe: 0,
+    shishi: 0,
+    shenqi: 0,
+    xianji: 0,
+    yuanmou: 0
   },
   market: [],
-  activeTianshiCard: null
+  activeTianshiCard: null,
+  initialCards: [],
+  availableCountries: [],
+  selectedCountries: []
 };
 
 const gameSlice = createSlice({
   name: 'game',
   initialState,
   reducers: {
-    updateGameState(state, action: PayloadAction<Partial<GameState>>) {
-      Object.assign(state, action.payload);
-    },
-    setGamePhase(state, action: PayloadAction<GameState['phase']>) {
-      state.phase = action.payload;
+    updateGameState(state, action: PayloadAction<GameState>) {
+      return action.payload;
     },
     setCurrentPlayer(state, action: PayloadAction<Player>) {
-      state.currentPlayer = action.payload;
+      state.currentPlayer = action.payload as WritablePlayer;
     },
     updatePlayers(state, action: PayloadAction<Player[]>) {
-      state.players = action.payload;
+      state.players = action.payload as WritablePlayer[];
     },
     updateDeckCounts(state, action: PayloadAction<Partial<GameState['decks']>>) {
       Object.assign(state.decks, action.payload);
     },
-    updateMarket(state, action: PayloadAction<CardType[]>) {
+    updateCountries(state, action: PayloadAction<Record<string, Country>>) {
+      state.countries = action.payload;
+    },
+    setPhase(state, action: PayloadAction<GamePhase>) {
+      state.phase = action.payload;
+    },
+    setRound(state, action: PayloadAction<number>) {
+      state.round = action.payload;
+    },
+    setMarket(state, action: PayloadAction<CardType[]>) {
       state.market = action.payload;
     }
   }
@@ -75,11 +72,13 @@ const gameSlice = createSlice({
 
 export const {
   updateGameState,
-  setGamePhase,
   setCurrentPlayer,
   updatePlayers,
   updateDeckCounts,
-  updateMarket
+  updateCountries,
+  setPhase,
+  setRound,
+  setMarket
 } = gameSlice.actions;
 
 export default gameSlice.reducer; 

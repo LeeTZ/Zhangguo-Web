@@ -1,57 +1,50 @@
-// 天时牌类型
-export interface TianshiCard {
+// 基础卡牌类型
+export interface BaseCard {
   id: string | number;
   name: string;
-  effect: string;
+  type: string;
+  description?: string;
+  effect?: string;
+}
+
+// 天时牌类型
+export interface TianshiCard extends BaseCard {
+  type: 'tianshi';
 }
 
 // 英杰牌类型
-export interface HeroCard {
-  id: string;
-  name: string;
+export interface HeroCard extends BaseCard {
+  type: 'hero' | 'heroNeutral';
   country: string;
   birthDeath: string;
-  type: 'hero' | 'heroNeutral';
   score: number;
   goal: string;
-  description: string;
   quote: string;
-  effect: string;
 }
 
 // 人和牌类型
-export interface RenheCard {
-  id: string | number;
-  name: string;
-  effect: string;
+export interface RenheCard extends BaseCard {
+  type: 'renhe';
 }
 
 // 史实牌类型
-export interface ShishiCard {
-  id: string | number;
-  name: string;
-  effect: string;
+export interface ShishiCard extends BaseCard {
+  type: 'shishi';
 }
 
 // 神机牌类型
-export interface ShenqiCard {
-  id: string | number;
-  name: string;
-  effect: string;
+export interface ShenqiCard extends BaseCard {
+  type: 'shenqi';
 }
 
 // 先机牌类型
-export interface XianjiCard {
-  id: string | number;
-  name: string;
-  effect: string;
+export interface XianjiCard extends BaseCard {
+  type: 'xianji';
 }
 
 // 远谋牌类型
-export interface YuanmouCard {
-  id: string | number;
-  name: string;
-  effect: string;
+export interface YuanmouCard extends BaseCard {
+  type: 'yuanmou';
 }
 
 // 卡牌类型联合

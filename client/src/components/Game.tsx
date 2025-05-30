@@ -2,19 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { useParams, useNavigate } from 'react-router-dom';
-import { InitialHeroSelection } from './InitialHeroSelection';
-import { GameBoard } from './GameBoard';
-import { GamePhase } from 'constants/gamePhases';
-import { Button, App, message } from 'antd';
+import { App, message } from 'antd';
 import { updateGameState } from '../store/gameSlice';
 import { RootState } from '../store';
-import { socket, joinRoom } from '../socket';
+import { socket } from '../socket';
+import { GameState } from '../store/types';
+import { HeroCard } from '../types/cards';
+import { CountrySelection } from './CountrySelection';
+import { InitialHeroSelection } from './InitialHeroSelection';
+import { GameBoard } from './GameBoard';
 
 const GameContainer = styled.div`
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 `;
 
 const LoadingText = styled.div`
@@ -34,218 +39,138 @@ const ErrorText = styled.div`
   border-radius: 8px;
 `;
 
-const ButtonContainer = styled.div`
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-`;
-
-const GameWrapper = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-`;
-
 interface GameProps {}
 
 export const Game: React.FC<GameProps> = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [gameState, setGameState] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const { roomId } = useParams<{ roomId: string }>();
-  const currentRoom = useSelector((state: RootState) => state.room.currentRoom);
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
   useEffect(() => {
-    let isComponentMounted = true;
-    let retryCount = 0;
-    const maxRetries = 3;
+    if (!socket) return;
 
-    const initializeGame = async () => {
-      if (!roomId) {
-        setError('无效的房间ID');
-        return;
-      }
+    const handleGameStateUpdate = (newState: GameState) => {
+      console.log('[游戏] 状态更新:', newState.phase);
+      setGameState(newState);
+      setIsConnecting(false);
+    };
 
-      try {
-        setIsConnecting(true);
-        setError(null);
+    const handleGameStarted = (data: { gameState: GameState }) => {
+      console.log('[游戏] 游戏开始');
+      setGameState(data.gameState);
+      setIsConnecting(false);
+    };
 
-        console.log('Initializing game with room:', roomId);
-        console.log('Current room state:', currentRoom);
+    const handleDisconnect = () => {
+      console.log('[游戏] 与服务器断开连接');
+      setIsConnecting(true);
+    };
 
-        // 检查当前房间状态
-        const savedState = localStorage.getItem('sessionData');
-        if (!savedState) {
-          console.error('No session data found');
-          setError('未找到玩家信息');
-          setIsConnecting(false);
-          return;
-        }
-
-        const { playerName, playerId } = JSON.parse(savedState);
-        if (!playerName) {
-          console.error('No player name found in session data');
-          setError('未找到玩家信息');
-          setIsConnecting(false);
-          return;
-        }
-
-        // 如果当前房间不匹配或不存在，加入新房间
-        if (!currentRoom || currentRoom.id !== roomId) {
-          console.log('Joining room...', { playerName, playerId, roomId });
-          joinRoom(roomId);
-        } else {
-          console.log('Room already joined, requesting game state...');
-          socket.emit('join_game', { roomId });
-        }
-
-        // 监听游戏状态更新
-        const handleGameStateUpdate = (newState: any) => {
-          console.log('Received game state update:', newState);
-          if (isComponentMounted) {
-            setGameState(newState);
-            dispatch(updateGameState(newState));
-            setIsConnecting(false);
-
-            // 如果游戏阶段变为playing，显示提示
-            if (newState.phase === GamePhase.PLAYING) {
-              message.success('英雄选择完成，游戏正式开始！');
-            }
-          }
-        };
-
-        // 监听初始游戏状态
-        const handleGameStarted = (data: any) => {
-          console.log('Received initial game state:', data);
-          if (isComponentMounted) {
-            setGameState(data.gameState);
-            dispatch(updateGameState(data.gameState));
-            setIsConnecting(false);
-          }
-        };
-
-        // 监听英雄选择结果
-        const handleHeroesSelected = (response: any) => {
-          console.log('Heroes selection response:', response);
-          if (response.success) {
-            message.success('英雄选择成功，等待其他玩家...');
-          } else {
-            message.error(response.error || '选择英雄失败');
-          }
-        };
-
-        // 监听错误
-        const handleError = (error: any) => {
-          console.error('Game error:', error);
-          if (isComponentMounted) {
-            if (error.message === '游戏尚未开始' && retryCount < maxRetries) {
-              console.log(`Retrying... (attempt ${retryCount + 1}/${maxRetries})`);
-              retryCount++;
-              setTimeout(initializeGame, 2000);
-            } else {
-              setError(error.message || '游戏出现错误');
-              message.error(error.message || '游戏出现错误');
-              setIsConnecting(false);
-            }
-          }
-        };
-
-        // 监听断开连接
-        const handleDisconnect = () => {
-          console.log('Disconnected from game server');
-          if (isComponentMounted) {
-            setError('与游戏服务器断开连接');
-            message.error('与游戏服务器断开连接');
-            setIsConnecting(false);
-          }
-        };
-
-        // 添加事件监听
-        socket.on('game_state_update', handleGameStateUpdate);
-        socket.on('game_started', handleGameStarted);
-        socket.on('error', handleError);
-        socket.on('disconnect', handleDisconnect);
-        socket.on('heroes_selected', handleHeroesSelected);
-
-        // 主动请求游戏状态同步
+    const handleConnect = () => {
+      console.log('[游戏] 已连接到服务器');
+      if (roomId) {
         socket.emit('request_game_sync', { roomId });
-
-      } catch (err) {
-        console.error('Error initializing game:', err);
-        if (isComponentMounted) {
-          setError('初始化游戏失败');
-          message.error('初始化游戏失败');
-          setIsConnecting(false);
-        }
       }
     };
 
-    // 初始化游戏
-    initializeGame();
+    socket.on('connect', handleConnect);
+    socket.on('game_state_update', handleGameStateUpdate);
+    socket.on('game_started', handleGameStarted);
+    socket.on('disconnect', handleDisconnect);
 
-    // 返回清理函数
-    return () => {
-      isComponentMounted = false;
-      socket.off('game_state_update');
-      socket.off('game_started');
-      socket.off('error');
-      socket.off('disconnect');
-      socket.off('heroes_selected');
-    };
-  }, [roomId, dispatch, navigate, currentRoom]);
-
-  useEffect(() => {
-    if (gameState) {
-      console.log('Current game state:', gameState);
-      console.log('Current phase:', gameState.phase);
+    if (socket.connected && roomId) {
+      socket.emit('request_game_sync', { roomId });
     }
-  }, [gameState]);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('game_state_update', handleGameStateUpdate);
+      socket.off('game_started', handleGameStarted);
+      socket.off('disconnect', handleDisconnect);
+    };
+  }, [socket, roomId]);
+
+  const handleCountrySelect = (countryId: string) => {
+    if (!socket || !roomId) return;
+
+    socket.emit('select_country', { roomId, countryId }, (response: any) => {
+      if (response.success) {
+        console.log('[游戏] 国家选择成功');
+      } else {
+        console.error('[游戏] 国家选择失败:', response.error);
+      }
+    });
+  };
+
+  const handleInitialHeroSelect = (selectedCards: string[]) => {
+    if (!socket || !roomId) return;
+
+    console.log('[游戏] 选择初始英雄牌:', selectedCards.length, '张');
+    socket.emit('select_hero_cards', { roomId, cardIds: selectedCards });
+  };
+
+  const handleCountrySelected = () => {
+    console.log('Country selection completed');
+  };
+
+  const renderGamePhase = () => {
+    if (!gameState || !roomId) {
+      return <LoadingText>加载中...</LoadingText>;
+    }
+
+    console.log('Rendering game phase:', {
+      phase: gameState.phase,
+      gameState
+    });
+
+    switch (gameState.phase) {
+      case 'waiting':
+        return (
+          <div>
+            <h2>等待其他玩家加入...</h2>
+            <p>当前玩家数: {gameState.players.length}</p>
+          </div>
+        );
+      case 'country_selection':
+        return (
+          <CountrySelection 
+            roomId={roomId} 
+            onCountrySelected={handleCountrySelected}
+            availableCountries={gameState.availableCountries}
+            selectedCountries={gameState.selectedCountries}
+          />
+        );
+      case 'initial_hero_selection':
+        if (!gameState.initialCards || !Array.isArray(gameState.initialCards)) {
+          return <div>等待初始英雄牌分发中...</div>;
+        }
+        return (
+          <InitialHeroSelection
+            initialCards={gameState.initialCards}
+            onCardsSelected={handleInitialHeroSelect}
+          />
+        );
+      case 'playing':
+        return <GameBoard gameState={gameState} />;
+      case 'ended':
+        return <div>游戏结束！获胜者：{gameState.winner}</div>;
+      default:
+        console.error('Unknown game phase:', gameState.phase);
+        return <div>未知游戏状态</div>;
+    }
+  };
+
+  if (error) {
+    return <ErrorText>{error}</ErrorText>;
+  }
 
   return (
     <App>
       <GameContainer>
-        {error ? (
-          <ErrorText>
-            {error}
-            <ButtonContainer>
-              <Button onClick={() => navigate('/lobby')}>返回大厅</Button>
-              <Button onClick={() => window.location.reload()}>重新连接</Button>
-            </ButtonContainer>
-          </ErrorText>
-        ) : isConnecting || !gameState ? (
-          <LoadingText>正在连接游戏服务器...</LoadingText>
-        ) : (
-          <>
-            {gameState.phase === GamePhase.INITIAL_SELECTION && (
-              <GameWrapper>
-                <InitialHeroSelection
-                  initialCards={gameState.initialCards}
-                  onCardsSelected={(selectedCards) => {
-                    if (socket && roomId) {
-                      console.log('Selecting initial heroes:', selectedCards);
-                      socket.emit('select_hero_cards', {
-                        roomId,
-                        cardIds: selectedCards
-                      });
-                    }
-                  }}
-                />
-              </GameWrapper>
-            )}
-            {gameState.phase === GamePhase.PLAYING && (
-              <GameWrapper>
-                <GameBoard gameState={gameState} />
-              </GameWrapper>
-            )}
-            {!gameState.phase && (
-              <ErrorText>游戏状态异常：未知的游戏阶段</ErrorText>
-            )}
-          </>
-        )}
+        {isConnecting ? <LoadingText>正在连接游戏...</LoadingText> : renderGamePhase()}
       </GameContainer>
     </App>
   );

@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { RootState } from '../store';
 import { socket, joinRoom, leaveRoom } from '../socket';
-import { GamePhase } from '../store/types';
 import { setCurrentRoom } from '../store/roomSlice';
 import { message, Button, App } from 'antd';
 
@@ -109,13 +108,14 @@ const ButtonContainer = styled.div`
   gap: 16px;
 `;
 
-const GameRoom: React.FC = () => {
+export const GameRoom: React.FC = () => {
   const { message: messageApi } = App.useApp();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { roomId } = useParams<{ roomId: string }>();
   const [isConnecting, setIsConnecting] = useState(false);
   const currentRoom = useSelector((state: RootState) => state.room.currentRoom);
+  const [username] = useState(() => localStorage.getItem('username') || '');
 
   useEffect(() => {
     let isComponentMounted = true;
@@ -208,6 +208,18 @@ const GameRoom: React.FC = () => {
     };
   }, [roomId, dispatch, navigate, messageApi, currentRoom]);
 
+  useEffect(() => {
+    if (!roomId || !username) return;
+
+    console.log('Setting up socket event handlers');
+    socket.emit('join_room', { roomId, username });
+
+    return () => {
+      console.log('Cleaning up socket event handlers');
+      socket.emit('leave_room', { roomId });
+    };
+  }, [roomId, username]);
+
   const handleLeaveRoom = () => {
     leaveRoom();
     navigate('/lobby');
@@ -222,20 +234,7 @@ const GameRoom: React.FC = () => {
   }
 
   const isCurrentPlayerHost = currentRoom.players.some(p => {
-    console.log('Checking player:', {
-      playerName: p.username,
-      isHost: p.isHost,
-      playerSessionId: p.sessionId,
-      currentPlayerSocketId: currentRoom.currentPlayer?.socketId,
-      currentPlayerPlayerId: currentRoom.currentPlayer?.playerId,
-      currentPlayer: currentRoom.currentPlayer
-    });
     return p.isHost && p.sessionId === currentRoom.currentPlayer?.playerId;
-  });
-
-  console.log('Room state:', {
-    currentRoom,
-    isCurrentPlayerHost
   });
 
   return (
@@ -266,18 +265,16 @@ const GameRoom: React.FC = () => {
             </PlayerItem>
           ))}
         </PlayerList>
-        {currentRoom.status === GamePhase.WAITING && (
-          <ButtonContainer>
-            <Button
-              type="primary"
-              size="large"
-              disabled={!isCurrentPlayerHost}
-              onClick={() => socket.emit('start_game', { roomId })}
-            >
-              {isCurrentPlayerHost ? '开始游戏' : '等待房主开始游戏'}
-            </Button>
-          </ButtonContainer>
-        )}
+        <ButtonContainer>
+          <Button
+            type="primary"
+            size="large"
+            disabled={!isCurrentPlayerHost}
+            onClick={() => socket.emit('start_game', { roomId })}
+          >
+            {isCurrentPlayerHost ? '开始游戏' : '等待房主开始游戏'}
+          </Button>
+        </ButtonContainer>
       </RoomContainer>
     </App>
   );

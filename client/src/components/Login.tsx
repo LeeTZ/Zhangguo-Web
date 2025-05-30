@@ -99,6 +99,8 @@ const Login: React.FC = () => {
       // 创建玩家对象
       const player: Player = {
         id: socket.id,
+        sessionId: socket.id,
+        username: name.trim(),
         name: name.trim(),
         hand: {
           hero: [],
@@ -107,7 +109,7 @@ const Login: React.FC = () => {
           shishi: [],
           shenqi: []
         },
-        geoTokens: 3,
+        geoTokens: 0,
         tributeTokens: 0,
         isHost: false
       };
@@ -134,6 +136,8 @@ const Login: React.FC = () => {
     const playerName = name.trim() || 'player';
     const player: Player = {
       id: socket.id || Date.now().toString(),
+      sessionId: socket.id || Date.now().toString(),
+      username: playerName,
       name: playerName,
       hand: {
         hero: [],

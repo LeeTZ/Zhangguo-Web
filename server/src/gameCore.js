@@ -112,11 +112,11 @@ class Player {
 
   // 添加卡牌到手牌
   addCard(cardType, card) {
-    if (this.hand[cardType]) {
-      this.hand[cardType].push(card);
-      return true;
+    if (!this.hand[cardType]) {
+      this.hand[cardType] = [];
     }
-    return false;
+    this.hand[cardType].push(card);
+    return true;
   }
 
   // 移除手牌
@@ -166,24 +166,49 @@ class Deck {
   constructor(cards = []) {
     this.cards = cards;
   }
+  
   shuffle() {
     for (let i = this.cards.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
     }
   }
+  
   draw(n = 1) {
-    return this.cards.splice(0, n);
+    if (n <= 0) {
+      console.error('[牌堆] 错误: 无效的抽牌数量:', n);
+      return [];
+    }
+    
+    if (this.cards.length < n) {
+      console.error(`[牌堆] 错误: 牌堆剩余卡牌不足. 请求: ${n}, 可用: ${this.cards.length}`);
+      return [];
+    }
+    
+    const drawnCards = this.cards.splice(0, n);
+    return drawnCards.filter(card => card !== null && card !== undefined);
   }
+  
   addToTop(card) {
+    if (card === null || card === undefined) {
+      console.error('[牌堆] 错误: 尝试添加空卡牌到牌堆顶部');
+      return;
+    }
     this.cards.unshift(card);
   }
+  
   addToBottom(card) {
+    if (card === null || card === undefined) {
+      console.error('[牌堆] 错误: 尝试添加空卡牌到牌堆底部');
+      return;
+    }
     this.cards.push(card);
   }
+  
   isEmpty() {
     return this.cards.length === 0;
   }
+  
   size() {
     return this.cards.length;
   }
@@ -213,7 +238,22 @@ class TokenPool {
 // 游戏核心状态
 class GameCore {
   constructor(players) {
-    this.players = players.map(p => new Player(p.id, p.name));
+    this.players = players.map(player => ({
+      ...player,
+      selectedCountry: undefined,
+      hand: {
+        hero: [],
+        heroNeutral: [],
+        renhe: [],
+        shishi: [],
+        shenqi: []
+      },
+      geoTokens: 3,
+      tributeTokens: 0,
+      isHost: false,
+      isReady: false
+    }));
+
     this.countries = {};
     this.decks = {
       tianshi: new Deck(),
@@ -227,9 +267,10 @@ class GameCore {
     };
     this.market = [];
     this.activeTianshiCard = null;
-    this.phase = 'initial_selection';  // 设置初始阶段为initial_selection
+    this.phase = 'country_selection';
     this.round = 1;
     this.currentPlayerIndex = 0;
+    this.selectedCountries = new Set();
 
     // 初始化游戏
     this.initializeGame();
@@ -260,10 +301,7 @@ class GameCore {
     // 3. 初始化其他牌堆
     this.initializeDecks();
 
-    // 4. 发放初始英杰牌
-    this.dealInitialHeroCards();
-
-    // 5. 将各牌堆放置在地图对应位置
+    // 4. 将各牌堆放置在地图对应位置
     // 注：这里只是逻辑上的放置，实际的UI显示需要在前端实现
     this.deckLocations = {
       heroNeutral: 'center', // 无所属英杰牌放在中央
@@ -276,117 +314,242 @@ class GameCore {
 
   initializeDecks() {
     const playerCount = this.players.length;
+    console.log('[游戏核心] 初始化牌堆，玩家数量:', playerCount);
 
-    // 初始化天时牌堆
-    const tianshiDeck = getTianshiDeck(playerCount);
-    this.decks.tianshi = new Deck(tianshiDeck);
-    console.log('Initialized tianshi deck:', this.decks.tianshi.cards);
-
-    // 抽取第一张天时牌
-    this.drawAndActivateTianshiCard();
-
-    // ... 其他牌堆的初始化 ...
-  }
-
-  // 发放初始英杰牌
-  dealInitialHeroCards() {
-    console.log('Starting to deal initial hero cards...');
-    
-    // 1. 每位玩家获得1张无所属英杰牌
-    this.players.forEach(player => {
-      console.log(`Dealing neutral hero card to player ${player.name || player.id}`);
-      const [neutralCard] = this.decks.heroNeutral.draw();
-      if (neutralCard) {
-        player.addCard('heroNeutral', neutralCard);
-        console.log(`Added neutral hero card to player ${player.name || player.id}:`, neutralCard);
-      }
-    });
-
-    // 2. 每位玩家从任意国家牌堆中抽取4张，让玩家选择保留2-3张
-    this.players.forEach(player => {
-      console.log(`Drawing country hero cards for player ${player.name || player.id}`);
-      // 记录玩家抽取的牌，等待玩家选择
-      player.tempHeroCards = [];
+    try {
+      // 初始化天时牌堆
+      const tianshiDeck = getTianshiDeck(playerCount);
+      console.log('[游戏核心] 获取天时牌堆:', tianshiDeck?.length || 0, '张牌');
       
-      // 从任意国家牌堆中抽取4张
-      const drawnCards = [];
-      for (let i = 0; i < GAME_CONSTANTS.INITIAL_HERO_CARDS.DRAW; i++) {
-        // 玩家可以从任意国家牌堆中抽取
-        const availableCountries = COUNTRY_LIST.filter(country => 
-          this.decks.hero[country].cards.length > 0
-        );
+      if (!tianshiDeck || tianshiDeck.length === 0) {
+        console.error('[游戏核心] 错误: 天时牌堆初始化失败');
+        this.decks.tianshi = new Deck([]);
+      } else {
+        // 确保每张牌都有正确的ID和类型
+        const formattedTianshiCards = tianshiDeck.map((card, index) => ({
+          ...card,
+          id: card.id || `tianshi_${index + 1}`,
+          type: 'tianshi'
+        }));
         
-        if (availableCountries.length > 0) {
-          const selectedCountry = availableCountries[Math.floor(Math.random() * availableCountries.length)];
-          const [card] = this.decks.hero[selectedCountry].draw();
-          if (card) {
-            drawnCards.push(card);
-            console.log(`Drew card from ${selectedCountry}:`, card);
-          }
-        }
+        this.decks.tianshi = new Deck(formattedTianshiCards);
+        this.decks.tianshi.shuffle();
+        console.log('[游戏核心] 天时牌堆初始化完成，包含', this.decks.tianshi.size(), '张牌');
       }
-      
-      // 存储抽取的牌，等待玩家选择
-      player.tempHeroCards = drawnCards;
-      console.log(`Temp hero cards for player ${player.name || player.id}:`, drawnCards);
-    });
+
+      // 初始化其他牌堆
+      this.decks.renhe = new Deck([]);
+      this.decks.shishi = new Deck([]);
+      this.decks.shenqi = new Deck([]);
+      this.decks.xianji = new Deck([]);
+      this.decks.yuanmou = new Deck([]);
+
+      // 抽取第一张天时牌
+      if (this.decks.tianshi && !this.decks.tianshi.isEmpty()) {
+        this.activeTianshiCard = this.drawAndActivateTianshiCard();
+        console.log('[游戏核心] 抽取首张天时牌:', this.activeTianshiCard);
+      } else {
+        console.warn('[游戏核心] 警告: 无法抽取天时牌，牌堆为空');
+      }
+
+      console.log('[游戏核心] 所有牌堆初始化完成');
+    } catch (error) {
+      console.error('[游戏核心] 初始化牌堆时发生错误:', error);
+      // 确保即使出错也创建空牌堆
+      this.decks.tianshi = this.decks.tianshi || new Deck([]);
+      this.decks.renhe = this.decks.renhe || new Deck([]);
+      this.decks.shishi = this.decks.shishi || new Deck([]);
+      this.decks.shenqi = this.decks.shenqi || new Deck([]);
+      this.decks.xianji = this.decks.xianji || new Deck([]);
+      this.decks.yuanmou = this.decks.yuanmou || new Deck([]);
+    }
   }
 
-  // 玩家选择要保留的英杰牌
-  selectInitialHeroCards(playerId, selectedCardIds) {
-    console.log('Selecting initial hero cards for player:', playerId);
-    console.log('Selected card IDs:', selectedCardIds);
-    
+  // 检查是否所有玩家都选择了国家
+  checkAllPlayersSelectedCountry() {
+    return this.players.every(player => player.selectedCountry);
+  }
+
+  // 选择国家
+  selectCountry(playerId, countryId) {
+    // 验证玩家
     const player = this.players.find(p => p.id === playerId);
-    console.log('Found player:', player);
-    
     if (!player) {
-      console.error('Player not found:', playerId);
       throw new Error('玩家不存在');
     }
+
+    // 验证玩家是否已经选择过国家
+    if (player.selectedCountry) {
+      throw new Error('玩家已经选择过国家');
+    }
+
+    // 验证国家是否存在
+    if (!COUNTRY_LIST.includes(countryId)) {
+      throw new Error('无效的国家选择');
+    }
+
+    // 验证国家是否已被选择
+    if (this.selectedCountries.has(countryId)) {
+      throw new Error('该国家已被其他玩家选择');
+    }
+
+    // 记录选择
+    player.selectedCountry = countryId;
+    this.selectedCountries.add(countryId);
+    player.country = countryId;
+
+    console.log(`[游戏] 玩家 ${player.name} 选择了 ${countryId}`);
+
+    // 检查是否所有玩家都已选择国家
+    const allPlayersSelected = this.players.every(p => p.selectedCountry);
+    if (allPlayersSelected) {
+      console.log('[游戏] 所有玩家已选择国家，进入初始英雄选择阶段');
+      this.phase = 'initial_hero_selection';
+      this.dealInitialHeroCards();
+    }
+
+    return true;
+  }
+
+  // 从指定牌堆中抽取指定数量的牌
+  drawCards(deck, count) {
+    if (!deck || typeof deck.draw !== 'function') {
+      console.error('Invalid deck:', deck);
+      return [];
+    }
+    return deck.draw(count);
+  }
+
+  // 发放初始英雄牌
+  dealInitialHeroCards() {
+    console.log('[游戏核心] 开始发放初始英雄牌');
     
-    if (!player.tempHeroCards) {
-      console.error('No temp hero cards for player:', player);
-      throw new Error('没有待选择的英杰牌');
+    this.players.forEach(player => {
+      if (!player.selectedCountry) {
+        console.error(`[游戏核心] 错误: 玩家 ${player.name} 未选择国家`);
+        return;
+      }
+
+      console.log(`[游戏核心] 为玩家 ${player.name} 发放初始英雄牌，所选国家: ${player.selectedCountry}`);
+
+      // 获取玩家所选国家的英雄牌堆
+      const countryHeroDeck = this.decks.hero[player.selectedCountry];
+      if (!countryHeroDeck || countryHeroDeck.isEmpty()) {
+        console.log(`[游戏核心] 重新初始化 ${player.selectedCountry} 的英雄牌堆`);
+        this.decks.hero[player.selectedCountry] = new Deck(getHeroDeckByCountry(player.selectedCountry));
+        this.decks.hero[player.selectedCountry].shuffle();
+      }
+
+      // 从玩家所选国家的英雄牌堆中抽取4张牌
+      const countryHeroCards = this.drawCards(this.decks.hero[player.selectedCountry], GAME_CONSTANTS.INITIAL_HERO_CARDS.DRAW);
+      
+      if (!countryHeroCards || countryHeroCards.length === 0) {
+        console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 抽取英雄牌`);
+        return;
+      }
+
+      // 确保每张牌都有正确的ID
+      countryHeroCards.forEach((card, index) => {
+        if (!card.id) {
+          card.id = `${player.selectedCountry}_hero_${Date.now()}_${index}`;
+        }
+      });
+
+      console.log(`[游戏核心] 玩家 ${player.name} (${player.selectedCountry}) 获得初始英雄牌:`, 
+        countryHeroCards.map(card => ({id: card.id, name: card.name})));
+
+      // 存储待选择的英雄牌
+      player.tempHeroCards = countryHeroCards;
+    });
+
+    // 设置游戏阶段为初始英雄选择
+    this.phase = 'initial_hero_selection';
+    console.log('[游戏核心] 进入初始英雄选择阶段，当前玩家:', this.getCurrentPlayer()?.name);
+  }
+
+  // 选择初始英雄牌
+  selectInitialHeroCards(playerId, selectedCardIds) {
+    const player = this.players.find(p => p.id === playerId);
+    if (!player) {
+      throw new Error('玩家不存在');
     }
 
-    console.log(`Player ${player.name || player.id} temp hero cards:`, player.tempHeroCards);
-
-    // 验证选择的数量是否在2-3张之间
-    if (selectedCardIds.length < GAME_CONSTANTS.INITIAL_HERO_CARDS.KEEP.MIN || 
-        selectedCardIds.length > GAME_CONSTANTS.INITIAL_HERO_CARDS.KEEP.MAX) {
-      console.error('Invalid number of cards selected:', selectedCardIds.length);
-      throw new Error('必须选择2-3张英杰牌保留');
+    if (!player.tempHeroCards || player.tempHeroCards.length === 0) {
+      throw new Error('没有可选择的英雄牌');
     }
 
-    // 验证选择的卡牌是否存在于待选择的牌中
-    const invalidCards = selectedCardIds.filter(id => 
-      !player.tempHeroCards.some(card => card.id === id)
+    if (selectedCardIds.length < 2 || selectedCardIds.length > 3) {
+      throw new Error('必须选择2-3张英雄牌');
+    }
+
+    // 验证选择的卡牌ID是否有效
+    const validCardIds = player.tempHeroCards.map(card => card.id.toString());
+    const invalidCardIds = selectedCardIds.filter(id => !validCardIds.includes(id.toString()));
+    if (invalidCardIds.length > 0) {
+      throw new Error(`无效的卡牌ID: ${invalidCardIds.join(', ')}`);
+    }
+
+    // 将选中的卡牌添加到玩家手牌
+    const selectedCards = player.tempHeroCards.filter(card => 
+      selectedCardIds.includes(card.id.toString())
     );
-    if (invalidCards.length > 0) {
-      console.error('Invalid cards selected:', invalidCards);
-      throw new Error(`选择了无效的卡牌: ${invalidCards.join(', ')}`);
+    
+    console.log(`[游戏] 玩家 ${player.name} 选择了 ${selectedCards.length} 张初始英雄牌`);
+    player.hand.hero.push(...selectedCards);
+
+    // 清除临时英雄牌
+    delete player.tempHeroCards;
+
+    // 检查是否所有玩家都已选择完国家英雄牌
+    const allPlayersSelected = this.players.every(p => !p.tempHeroCards);
+    if (allPlayersSelected) {
+      console.log('[游戏] 所有玩家已选择初始英雄牌，开始发放中立英雄牌');
+      this.dealNeutralHeroCards();
     }
 
-    // 将选中的牌加入玩家手牌
-    const selectedCards = player.tempHeroCards.filter(card => selectedCardIds.includes(card.id));
-    console.log('Adding selected cards to player hand:', selectedCards);
-    selectedCards.forEach(card => {
-      player.addCard('hero', card);
+    return true;
+  }
+
+  // 发放中立英雄牌
+  dealNeutralHeroCards() {
+    // 确保中立英雄牌堆已经初始化
+    if (!this.decks.heroNeutral || this.decks.heroNeutral.isEmpty()) {
+      const neutralHeroDeck = getNeutralHeroDeck();
+      console.log('[中立英雄] 初始化牌堆:', neutralHeroDeck);
+      
+      if (!neutralHeroDeck || neutralHeroDeck.length === 0) {
+        console.error('[中立英雄] 错误: 牌堆为空!');
+        return;
+      }
+      
+      this.decks.heroNeutral = new Deck(neutralHeroDeck);
+      this.decks.heroNeutral.shuffle();
+    }
+
+    // 为每个玩家发放1张中立英雄牌
+    this.players.forEach(player => {
+      if (!this.decks.heroNeutral || this.decks.heroNeutral.isEmpty()) {
+        console.error(`[中立英雄] 错误: 没有足够的牌给玩家 ${player.name}`);
+        return;
+      }
+
+      const drawnCards = this.drawCards(this.decks.heroNeutral, 1);
+      const neutralCard = drawnCards[0];
+      
+      if (!neutralCard) {
+        console.error(`[中立英雄] 错误: 抽取卡牌失败，玩家 ${player.name}`);
+        return;
+      }
+      
+      if (!player.hand.heroNeutral) {
+        player.hand.heroNeutral = [];
+      }
+      
+      player.hand.heroNeutral.push(neutralCard);
+      console.log(`[中立英雄] 玩家 ${player.name} 获得卡牌:`, neutralCard);
     });
 
-    // 将未选中的牌洗回原牌堆
-    const unselectedCards = player.tempHeroCards.filter(card => !selectedCardIds.includes(card.id));
-    console.log('Returning unselected cards to deck:', unselectedCards);
-    unselectedCards.forEach(card => {
-      this.decks.hero[card.country].addToBottom(card);
-      this.decks.hero[card.country].shuffle();
-    });
-
-    // 清除临时存储的牌
-    delete player.tempHeroCards;
-    console.log('Initial hero selection completed for player:', playerId);
-    console.log('Player current hand:', player.hand);
+    this.phase = 'playing';
   }
 
   // 抽取一张天时牌并使其生效
@@ -427,65 +590,66 @@ class GameCore {
     return this.decks.tianshi.cards;
   }
 
+  // 获取可选择的国家列表
+  getAvailableCountries() {
+    return COUNTRY_LIST.filter(country => !this.selectedCountries.has(country));
+  }
+
   // 获取游戏状态
   getState() {
-    // 计算各个国家英杰牌堆的数量
-    const heroDecks = {};
-    COUNTRY_LIST.forEach(country => {
-      heroDecks[country] = this.decks.hero[country].size();
-    });
-
-    // 获取当前玩家的临时英雄牌（用于初始选择阶段）
     const currentPlayer = this.getCurrentPlayer();
-    const initialCards = currentPlayer?.tempHeroCards || [];
+    
+    // 格式化牌堆数量
+    const formatDeckCount = (deck) => {
+      if (!deck) return 0;
+      if (typeof deck.size === 'function') {
+        return deck.size();
+      }
+      if (typeof deck === 'object' && Object.keys(deck).length > 0) {
+        // 如果是国家英雄牌堆的集合，返回所有牌堆的总和
+        return Object.values(deck).reduce((sum, d) => sum + (d.size ? d.size() : 0), 0);
+      }
+      return 0;
+    };
 
-    // 转换玩家信息为前端需要的格式
-    const players = this.players.map(p => ({
-      id: p.id,
-      name: p.name,
-      hand: {
-        hero: p.hand.hero || [],
-        heroNeutral: p.hand.heroNeutral || [],
-        renhe: p.hand.renhe || [],
-        shishi: p.hand.shishi || [],
-        shenqi: p.hand.shenqi || []
-      },
-      geoTokens: p.geoTokens || 0,
-      tributeTokens: p.tributeTokens || 0,
-      isHost: p.isHost || false,
-      isReady: p.isReady || false
-    }));
-
-    console.log('GameCore getState players:', players);
+    // 获取牌堆数量
+    const deckCounts = {
+      tianshi: formatDeckCount(this.decks.tianshi),
+      hero: formatDeckCount(this.decks.hero),
+      heroNeutral: formatDeckCount(this.decks.heroNeutral),
+      renhe: formatDeckCount(this.decks.renhe),
+      shishi: formatDeckCount(this.decks.shishi),
+      shenqi: formatDeckCount(this.decks.shenqi),
+      xianji: formatDeckCount(this.decks.xianji),
+      yuanmou: formatDeckCount(this.decks.yuanmou)
+    };
 
     return {
-      phase: this.phase,  // 确保phase在返回对象的最前面
-      players: players,
+      phase: this.phase,
+      round: this.round,
+      currentPlayerId: currentPlayer?.id,
+      currentPlayer: currentPlayer ? {
+        ...currentPlayer,
+        tempHeroCards: currentPlayer.tempHeroCards
+      } : null,
+      players: this.players.map(player => ({
+        ...player,
+        hand: player.id === currentPlayer?.id ? player.hand : {
+          hero: player.hand.hero.length,
+          heroNeutral: player.hand.heroNeutral.length,
+          renhe: player.hand.renhe.length,
+          shishi: player.hand.shishi.length,
+          shenqi: player.hand.shenqi.length
+        }
+      })),
       countries: this.countries,
-      decks: {
-        tianshi: this.decks.tianshi.size(),
-        hero: heroDecks,  // 每个国家的英杰牌堆数量
-        heroNeutral: this.decks.heroNeutral.size(),
-        renhe: this.decks.renhe.size(),
-        shishi: this.decks.shishi.size(),
-        shenqi: this.decks.shenqi.size(),
-        xianji: this.decks.xianji.size(),
-        yuanmou: this.decks.yuanmou.size()
-      },
-      tianshiDeck: this.getTianshiDeck(),
+      decks: deckCounts,
       market: this.market,
       activeTianshiCard: this.activeTianshiCard,
-      round: this.round,
-      currentPlayer: currentPlayer ? {
-        id: currentPlayer.id,
-        name: currentPlayer.name,
-        hand: currentPlayer.hand,
-        geoTokens: currentPlayer.geoTokens,
-        tributeTokens: currentPlayer.tributeTokens,
-        isHost: currentPlayer.isHost,
-        isReady: currentPlayer.isReady
-      } : null,
-      initialCards: initialCards  // 添加初始英雄牌
+      tianshiDeck: this.decks.tianshi.cards,
+      initialCards: currentPlayer?.tempHeroCards,
+      availableCountries: this.phase === 'country_selection' ? this.getAvailableCountries() : undefined,
+      selectedCountries: Array.from(this.selectedCountries)
     };
   }
 }

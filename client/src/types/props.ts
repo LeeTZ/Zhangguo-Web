@@ -1,4 +1,5 @@
 import { HeroCard } from './cards';
+import { GameState as StoreGameState, Player as StorePlayer } from '../store/types';
 
 export interface Hand {
   hero: HeroCard[];
@@ -8,36 +9,9 @@ export interface Hand {
   shenqi: any[];
 }
 
-export interface Player {
-  id: string;
-  sessionId: string;
-  username: string;
-  isHost: boolean;
-  ready: boolean;
-  hand?: Hand;
-  geoTokens: number;
-  tributeTokens: number;
-  isBot?: boolean;
-  selectedHero?: HeroCard;
-}
-
-export interface GameState {
-  players: Player[];
-  currentPlayer?: Player;
-  round: number;
-  decks: {
-    tianshi: number;
-    renhe: number;
-    shishi: number;
-    shenqi: number;
-    xianji: number;
-    yuanmou: number;
-  };
-  activeTianshiCard?: any;
-  tianshiDeck?: any[];
-  countries: { [key: string]: { name: string; military: number; economy: number; politics: number; hasKingToken: boolean; hegemony: number; } };
-}
+export type { StorePlayer as Player };
+export type { StoreGameState as GameState };
 
 export interface GameBoardProps {
-  gameState: GameState;
+  gameState: StoreGameState;
 } 

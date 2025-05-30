@@ -1,20 +1,19 @@
 import { TianshiCard } from '../data/tianshi';
+import { GamePhase } from '../types/game';
+import { CardType, HeroCard } from '../types/cards';
 
-// 卡牌类型
-export interface CardType {
-  id: string;
-  name: string;
-  type: string;
-  description: string;
-}
+export type { CardType };
+export type { HeroCard };
 
 // 玩家类型
 export interface Player {
   id: string;
+  sessionId: string;
+  username: string;
   name: string;
   hand: {
-    hero: CardType[];
-    heroNeutral: CardType[];
+    hero: HeroCard[];
+    heroNeutral: HeroCard[];
     renhe: CardType[];
     shishi: CardType[];
     shenqi: CardType[];
@@ -22,6 +21,9 @@ export interface Player {
   geoTokens: number;
   tributeTokens: number;
   isHost: boolean;
+  isBot?: boolean;
+  selectedCountry?: string;
+  selectedHero?: HeroCard;
 }
 
 // 牌堆数量类型
@@ -53,6 +55,7 @@ export interface GameState {
   currentPlayerId: string | null;
   currentPlayer: Player | null;
   players: Player[];
+  winner?: string;
   countries: {
     [key: string]: {
       name: string;
@@ -76,6 +79,9 @@ export interface GameState {
   tianshiDeck?: TianshiCard[];
   market: CardType[];
   activeTianshiCard: TianshiCard | null;
+  initialCards?: HeroCard[];
+  availableCountries?: string[];
+  selectedCountries?: string[];
 }
 
 // 服务器房间类型
@@ -98,19 +104,4 @@ export interface ServerPlayer {
   playerId: string;
   socketId: string;
   isHost: boolean;
-}
-
-// 游戏阶段
-export enum GamePhase {
-  WAITING = 'waiting',
-  PREPARING = 'preparing',
-  PLAYING = 'playing',
-  ENDED = 'ended'
-}
-
-// 英雄牌
-export interface HeroCard extends CardType {
-  country: string;
-  birthDeath: string;
-  score: number;
 } 

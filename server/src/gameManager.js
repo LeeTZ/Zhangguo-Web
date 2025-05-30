@@ -60,7 +60,7 @@ class GameManager {
     this.gameCore = new GameCore(this.players);
 
     // 设置游戏阶段为初始英雄选择
-    this.gameCore.phase = 'initial_selection';
+    this.gameCore.phase = 'initial_hero_selection';
 
     // 广播初始游戏状态
     this.broadcastGameState();
@@ -289,6 +289,49 @@ class GameManager {
       // 结束回合
       this.endTurn();
     }, 2000);
+  }
+
+  // 处理玩家选择国家
+  handleCountrySelection(playerId, countryId) {
+    console.log(`Handling country selection for player ${playerId}, country ${countryId}`);
+    
+    try {
+      const result = this.gameCore.selectCountry(playerId, countryId);
+      
+      // 广播更新后的游戏状态
+      this.broadcastGameState();
+
+      // 如果所有人类玩家都已选择，让机器人玩家选择
+      if (result.success) {
+        this.handleBotCountrySelections();
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Country selection failed:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 处理机器人玩家的国家选择
+  handleBotCountrySelections() {
+    // 获取所有未选择国家的机器人玩家
+    const botsWithoutCountry = this.players.filter(p => 
+      p.isBot && !this.gameCore.players.find(gp => gp.id === p.id)?.selectedCountry
+    );
+
+    // 按顺序让每个机器人选择国家
+    for (const bot of botsWithoutCountry) {
+      try {
+        console.log(`Bot ${bot.id} selecting country`);
+        this.gameCore.botSelectCountry(bot.id);
+      } catch (error) {
+        console.error(`Bot ${bot.id} failed to select country:`, error);
+      }
+    }
+
+    // 广播更新后的游戏状态
+    this.broadcastGameState();
   }
 }
 

@@ -1,16 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Button, Card, message } from 'antd';
-
-interface HeroCard {
-  id: string;
-  name: string;
-  country: string;
-  score: number;
-  goal: string;
-  description: string;
-  quote: string;
-}
+import { HeroCard } from '../types/cards';
 
 interface InitialHeroSelectionProps {
   initialCards: HeroCard[];
@@ -96,16 +87,34 @@ export const InitialHeroSelection: React.FC<InitialHeroSelectionProps> = ({
 }) => {
   const [selectedCards, setSelectedCards] = useState<string[]>([]);
 
-  const toggleCardSelection = (cardId: string) => {
+  useEffect(() => {
+    console.log('InitialHeroSelection mounted with cards:', initialCards);
+  }, []);
+
+  useEffect(() => {
+    console.log('InitialHeroSelection cards updated:', initialCards);
+  }, [initialCards]);
+
+  if (!Array.isArray(initialCards) || initialCards.length === 0) {
+    return (
+      <SelectionContainer>
+        <h2>等待初始英杰牌</h2>
+        <p>正在准备初始英杰牌，请稍候...</p>
+      </SelectionContainer>
+    );
+  }
+
+  const toggleCardSelection = (cardId: string | number) => {
+    const stringId = String(cardId);
     setSelectedCards(prev => {
-      if (prev.includes(cardId)) {
-        return prev.filter(id => id !== cardId);
+      if (prev.includes(stringId)) {
+        return prev.filter(id => id !== stringId);
       } else {
         if (prev.length >= 3) {
           message.warning('最多只能选择3张英杰牌');
           return prev;
         }
-        return [...prev, cardId];
+        return [...prev, stringId];
       }
     });
   };
@@ -124,26 +133,29 @@ export const InitialHeroSelection: React.FC<InitialHeroSelectionProps> = ({
       <p>请从以下英杰牌中选择2-3张作为你的初始英杰</p>
       
       <CardGrid>
-        {initialCards.map(card => (
-          <StyledCard
-            key={card.id}
-            $selected={selectedCards.includes(card.id)}
-            onClick={() => toggleCardSelection(card.id)}
-            hoverable
-          >
-            <Card.Meta
-              title={`${card.name} (${card.country})`}
-              description={
-                <>
-                  <p>分数: {card.score}</p>
-                  <p>目标: {card.goal}</p>
-                  <p>{card.description}</p>
-                  <QuoteText>{card.quote}</QuoteText>
-                </>
-              }
-            />
-          </StyledCard>
-        ))}
+        {initialCards.map(card => {
+          const stringId = String(card.id);
+          return (
+            <StyledCard
+              key={stringId}
+              $selected={selectedCards.includes(stringId)}
+              onClick={() => toggleCardSelection(card.id)}
+              hoverable
+            >
+              <Card.Meta
+                title={`${card.name} (${card.country})`}
+                description={
+                  <>
+                    <p>分数: {card.score}</p>
+                    <p>目标: {card.goal}</p>
+                    <p>{card.description}</p>
+                    <QuoteText>{card.quote}</QuoteText>
+                  </>
+                }
+              />
+            </StyledCard>
+          );
+        })}
       </CardGrid>
 
       <ButtonContainer>
