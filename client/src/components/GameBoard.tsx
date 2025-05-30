@@ -1,12 +1,26 @@
 import React from 'react';
 import { Card } from 'antd';
 import styled from '@emotion/styled';
-import { GameBoardProps, Player, Hand } from 'types/props';
+import { GameBoardProps, Player } from 'types/props';
 import { TianshiArea } from 'components/TianshiArea';
 import { CountriesArea } from 'components/CountriesArea';
 import { PlayerInfo } from 'components/PlayerInfo';
-import { HeroCard, TianshiCard, RenheCard } from 'types/cards';
-import RenheCardList from 'components/RenheCardList';
+import { HeroCard, RenheCard, ShishiCard } from 'types/cards';
+import HandCardList from 'components/HandCardList';
+
+// 自定义紧凑型 Card 样式
+const CompactCard = styled(Card)`
+  .ant-card-body {
+    padding: 8px;
+  }
+  .ant-card-head {
+    padding: 0 8px;
+    min-height: 36px;
+  }
+  .ant-card-head-title {
+    padding: 8px 0;
+  }
+`;
 
 // 样式组件定义
 const BoardContainer = styled.div`
@@ -44,34 +58,10 @@ const PlayerArea = styled.div`
 `;
 
 const PlayerSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-
+  margin-bottom: 16px;
+  
   .ant-card {
-    margin: 0;
-    .ant-card-head {
-      min-height: 32px;
-      padding: 0 8px;
-      .ant-card-head-title {
-        padding: 4px 0;
-        font-size: 13px;
-      }
-    }
-    .ant-card-body {
-      padding: 8px;
-    }
-  }
-
-  /* 调整PlayerInfo组件在卡片中的样式 */
-  .ant-card-body > div {
-    margin: 4px 0;
-  }
-
-  /* 调整RenheCardList在卡片中的样式 */
-  .ant-card:last-child .ant-card-body {
-    padding-top: 4px;
-    padding-bottom: 4px;
+    margin-bottom: 8px;
   }
 `;
 
@@ -100,7 +90,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
 
   // 将服务器返回的玩家信息转换为组件需要的格式
   const formatPlayers = (players: Player[]) => {
-    console.log('原始玩家数据:', JSON.stringify(players, null, 2));
     return players.map(player => {
       // 判断是否是机器人玩家（根据名字前缀）
       const isBot = player.username?.startsWith('Bot');
@@ -113,8 +102,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         shishi: [],
         shenqi: []
       };
-
-      console.log(`处理玩家 ${player.username} 的原始数据:`, JSON.stringify(player, null, 2));
       
       // 获取英雄卡
       const heroCards = playerHand.hero?.filter(card => card != null) || [];
@@ -141,6 +128,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         },
         handSize,
         renheCardCount: (playerHand.renhe || []).length,
+        shishiCardCount: (playerHand.shishi || []).length,
         geoTokens: player.geoTokens || 3,
         tributeTokens: player.tributeTokens || 0,
         heroCards: allHeroCards,
@@ -149,41 +137,48 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         score: score
       };
 
-      console.log(`玩家 ${player.username} 的格式化数据:`, JSON.stringify(formattedPlayer, null, 2));
       return formattedPlayer;
     });
   };
 
   const formattedPlayers = formatPlayers(gameState.players);
-  console.log('最终格式化的玩家列表:', JSON.stringify(formattedPlayers, null, 2));
 
   return (
     <BoardContainer>
       <PlayerArea>
         {formattedPlayers.map((player) => (
-          <PlayerSection key={player.id}>
-            <Card>
+          <PlayerSection key={player.id}>            
+            <CompactCard>
               <PlayerInfo
                 name={player.name}
                 handSize={player.handSize}
                 renheCardCount={player.renheCardCount}
+                shishiCardCount={player.shishiCardCount}
                 geoTokens={player.geoTokens}
                 tributeTokens={player.tributeTokens}
                 heroCards={player.heroCards}
                 isCurrentPlayer={player.id === currentPlayerId}
                 score={player.score}
               />
-            </Card>
-            
-            <Card>
-              <RenheCardList
-                cards={player.hand.renhe as RenheCard[]}
+              <HandCardList
+                renheCards={player.hand.renhe
+                  .filter((card): card is RenheCard => card.type === 'renhe')
+                  .map(card => ({
+                    ...card,
+                    id: String(card.id)
+                  }))}
+                shishiCards={player.hand.shishi
+                  .filter((card): card is ShishiCard => card.type === 'shishi')
+                  .map(card => ({
+                    ...card,
+                    id: String(card.id)
+                  }))}
                 selectedCardIds={[]}
                 onCardClick={(cardId) => {
-                  console.log(`玩家 ${player.name} 点击了人和牌:`, cardId);
+                  console.log(`玩家 ${player.name} 点击了卡牌:`, cardId);
                 }}
               />
-            </Card>
+            </CompactCard>
           </PlayerSection>
         ))}
       </PlayerArea>

@@ -2,6 +2,7 @@
 const { TurnPhase } = require('./gamePhases');
 const { tianshiCards, getTianshiDeck, getHeroDeckByCountry, getNeutralHeroDeck } = require('./cardData');
 const { createRenheCards, shuffleCards } = require('./data/renheCards');
+const { createShishiCards } = require('./data/shishiCards');
 
 // 卡牌类型
 const CardType = {
@@ -303,7 +304,6 @@ class GameCore {
     this.initializeDecks();
 
     // 4. 将各牌堆放置在地图对应位置
-    // 注：这里只是逻辑上的放置，实际的UI显示需要在前端实现
     this.deckLocations = {
       heroNeutral: 'center', // 无所属英杰牌放在中央
       hero: {} // 各国英杰牌放在对应国家位置
@@ -344,8 +344,16 @@ class GameCore {
       this.decks.renhe.shuffle();
       console.log('[游戏核心] 人和牌堆初始化完成，包含', this.decks.renhe.size(), '张牌');
 
-      // 为每个玩家发放初始人和牌
+      // 初始化史实牌堆
+      const shishiCards = createShishiCards();
+      this.decks.shishi = new Deck(shishiCards);
+      this.decks.shishi.shuffle();
+      console.log('[游戏核心] 史实牌堆初始化完成，包含', this.decks.shishi.size(), '张牌');
+      console.log('[游戏核心] 史实牌堆前5张:', JSON.stringify(this.decks.shishi.cards.slice(0, 5), null, 2));
+
+      // 为每个玩家发放初始牌
       this.players.forEach(player => {
+        // 发放初始人和牌
         const initialRenheCards = this.decks.renhe.draw(GAME_CONSTANTS.INITIAL_RENHE_CARDS);
         if (initialRenheCards.length > 0) {
           player.hand.renhe = initialRenheCards;
@@ -353,10 +361,20 @@ class GameCore {
         } else {
           console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始人和牌`);
         }
+
+        // 发放初始史实牌
+        const initialShishiCards = this.decks.shishi.draw(GAME_CONSTANTS.INITIAL_SHISHI_CARDS);
+        if (initialShishiCards.length > 0) {
+          player.hand.shishi = initialShishiCards;
+          console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShishiCards.length} 张史实牌:`, 
+            JSON.stringify(initialShishiCards, null, 2));
+        } else {
+          console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始史实牌`);
+          player.hand.shishi = [];
+        }
       });
 
       // 初始化其他牌堆
-      this.decks.shishi = new Deck([]);
       this.decks.shenqi = new Deck([]);
       this.decks.xianji = new Deck([]);
       this.decks.yuanmou = new Deck([]);

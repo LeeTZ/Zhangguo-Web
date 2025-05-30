@@ -1,4 +1,6 @@
-const { createRenheCards, shuffleCards } = require('./data/renheCards');
+const { TurnPhase } = require('./gamePhases');
+const { GAME_CONSTANTS } = require('./gameCore');
+const GameCore = require('./gameCore');
 
 class GameServer {
   constructor(io) {
@@ -26,14 +28,15 @@ class GameServer {
         }
 
         // 初始化游戏状态
-        const gameState = this.initializeGame(room);
+        const gameCore = new GameCore(room.players);
+        gameCore.initializeGame();
+        room.gameCore = gameCore;
         
         // 广播游戏开始事件
-        this.io.to(roomId).emit('game_started', gameState);
+        this.io.to(roomId).emit('game_started', this.getGameState(room));
         
         // 更新房间状态
         room.status = 'playing';
-        room.gameState = gameState;
         
         // 广播房间更新
         this.broadcastRoomUpdate(roomId);
@@ -43,45 +46,18 @@ class GameServer {
     });
   }
 
-  initializeGame(room) {
-    // 初始化人和牌堆
-    const renheDeck = shuffleCards(createRenheCards());
-    console.log('人和牌堆初始化完成，共', renheDeck.length, '张牌');
-
-    // 为每个玩家分配初始牌
-    room.players.forEach(player => {
-      // 初始化玩家手牌
-      player.hand = {
-        renhe: renheDeck.splice(0, 3), // 每人3张人和牌
-        hero: [],
-        heroNeutral: [],
-        shishi: [],
-        shenqi: []
-      };
-      
-      console.log(`玩家 ${player.username} 获得了 ${player.hand.renhe.length} 张人和牌`);
-    });
-
-    // 返回游戏初始状态
+  getGameState(room) {
     return {
-      phase: 'playing',
+      phase: TurnPhase.PLAYING,
       round: 1,
       currentPlayer: room.players[0],
       players: room.players.map(player => ({
         id: player.sessionId,
         username: player.username,
-        hand: {
-          renhe: player.hand.renhe.length,
-          hero: player.hand.hero.length,
-          heroNeutral: player.hand.heroNeutral.length,
-          shishi: player.hand.shishi.length,
-          shenqi: player.hand.shenqi.length
-        },
+        hand: player.hand,
         isHost: player.isHost
       })),
-      decks: {
-        renhe: renheDeck.length
-      }
+      decks: room.gameCore.getDecksState()
     };
   }
 
@@ -92,7 +68,7 @@ class GameServer {
         id: roomId,
         players: room.players,
         status: room.status,
-        gameState: room.gameState
+        gameState: room.gameCore ? this.getGameState(room) : null
       });
     }
   }

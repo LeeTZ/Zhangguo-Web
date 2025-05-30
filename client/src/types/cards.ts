@@ -23,11 +23,9 @@ export interface HeroCard extends BaseCard {
 }
 
 // 人和牌类型
-export interface RenheCard {
-  id: string;
-  name: string;
+export interface RenheCard extends BaseCard {
   type: 'renhe';
-  cardType: 'junlue' | 'mimou' | 'neizheng' | 'waijiao';
+  cardType?: 'junlue' | 'mimou' | 'neizheng' | 'waijiao';
   description: string;
   effect: {
     type: string;
@@ -38,6 +36,8 @@ export interface RenheCard {
 // 史实牌类型
 export interface ShishiCard extends BaseCard {
   type: 'shishi';
+  countries: string[];
+  story?: string;
 }
 
 // 神机牌类型

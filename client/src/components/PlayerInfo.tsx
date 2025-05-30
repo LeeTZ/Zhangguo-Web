@@ -7,6 +7,7 @@ interface PlayerInfoProps {
   name: string;
   handSize: number;
   renheCardCount: number;
+  shishiCardCount: number;
   geoTokens: number;
   tributeTokens: number;
   heroCards: HeroCard[];
@@ -40,9 +41,9 @@ const PlayerNameSection = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  color: #1890ff;
-  font-weight: 500;
+  font-size: 16px;
+  color: #000000;
+  font-weight: bold;
   flex: 1;
 `;
 
@@ -195,6 +196,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   name,
   handSize,
   renheCardCount,
+  shishiCardCount,
   geoTokens,
   tributeTokens,
   heroCards,
@@ -202,6 +204,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   score = 0,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const totalHandCards = renheCardCount + shishiCardCount;
 
   return (
     <>
@@ -216,7 +219,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
             <InfoItem>
               <span>手牌</span>
               <HandCardIcon>
-                <span>{renheCardCount}</span>
+                <span>{totalHandCards}</span>
               </HandCardIcon>
             </InfoItem>
             <InfoItem>
@@ -242,9 +245,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           )}
           <HeroCardList>
             {heroCards.map((hero, index) => (
-              <Tooltip key={index} title={hero.name}>
-                <HeroCardTag country={hero.country}>{hero.name}</HeroCardTag>
-              </Tooltip>
+              <HeroCardTag country={hero.country}>{hero.name}</HeroCardTag>
             ))}
           </HeroCardList>
         </HeroSection>
@@ -262,7 +263,8 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
             <HeroTitle>{hero.name}</HeroTitle>
             <HeroInfo>
               <span>国家: {hero.country || '无所属'}</span>
-              <span>类型: {hero.type}</span>
+              <span>生卒年: {hero.birthDeath}</span>
+              <span>分数: {hero.score}</span>
             </HeroInfo>
             <HeroDescription>{hero.description}</HeroDescription>
             {hero.quote && <HeroQuote>"{hero.quote}"</HeroQuote>}

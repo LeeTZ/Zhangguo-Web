@@ -1,15 +1,10 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Tooltip } from 'antd';
-import { RenheCard as RenheCardType } from '../types/cards';
+import { ShishiCard as ShishiCardType } from '../types/cards';
 
-type RenheCardWithStringId = Omit<RenheCardType, 'id' | 'cardType'> & {
-  id: string;
-  cardType?: RenheCardType['cardType'];
-};
-
-interface RenheCardProps {
-  card: RenheCardWithStringId;
+interface ShishiCardProps {
+  card: ShishiCardType;
   isSelected?: boolean;
   onClick?: () => void;
 }
@@ -44,24 +39,34 @@ const CardName = styled.div`
   text-overflow: ellipsis;
 `;
 
-const RenheCard: React.FC<RenheCardProps> = ({
+const ShishiCard: React.FC<ShishiCardProps> = ({
   card,
   isSelected = false,
   onClick
 }) => {
   const tooltipContent = (
     <div>
+      <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{card.name}</div>
+      <div style={{ color: '#666', marginBottom: '8px' }}>
+        {card.countries.join('、')}
+      </div>
       <div>{card.description}</div>
+      {card.story && (
+        <>
+          <br />
+          <div style={{ color: '#666', fontStyle: 'italic' }}>{card.story}</div>
+        </>
+      )}
     </div>
   );
 
   return (
     <Tooltip title={tooltipContent} placement="right">
       <CardContainer isSelected={isSelected} onClick={onClick}>
-      <CardName>{card.name}</CardName>
+        <CardName>{card.name}</CardName>
       </CardContainer>
     </Tooltip>
   );
 };
 
-export default RenheCard;
+export default ShishiCard; 
