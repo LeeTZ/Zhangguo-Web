@@ -46,7 +46,8 @@ const GAME_CONSTANTS = {
   },
   INITIAL_RENHE_CARDS: 3,   // 初始人和牌数量
   INITIAL_SHISHI_CARDS: 2,  // 初始史实牌数量
-  INITIAL_SHENQI_CARDS: 1   // 初始神机牌数量（每位玩家1张）
+  INITIAL_SHENQI_CARDS: 1,  // 初始神机牌数量（每位玩家1张）
+  JINGNANG_MARKET_SIZE: 'players' // 锦囊市场的卡牌数量等于玩家数
 };
 
 // 国家对象
@@ -274,6 +275,7 @@ class GameCore {
     this.round = 1;
     this.currentPlayerIndex = 0;
     this.selectedCountries = new Set();
+    this.jingnangMarket = []; // 锦囊市场中的卡牌
 
     // 初始化游戏
     this.initializeGame();
@@ -303,6 +305,7 @@ class GameCore {
 
     // 3. 初始化其他牌堆
     this.initializeDecks();
+    this.initializeJingnangMarket(); // 初始化锦囊市场
 
     // 4. 将各牌堆放置在地图对应位置
     this.deckLocations = {
@@ -358,40 +361,6 @@ class GameCore {
       this.decks.shenqi.shuffle();
       console.log('[游戏核心] 神机牌堆初始化完成，包含', this.decks.shenqi.size(), '张牌');
 
-      // 为每个玩家发放初始牌
-      this.players.forEach(player => {
-        // 发放初始人和牌
-        const initialRenheCards = this.decks.renhe.draw(GAME_CONSTANTS.INITIAL_RENHE_CARDS);
-        if (initialRenheCards.length > 0) {
-          player.hand.renhe = initialRenheCards;
-          console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialRenheCards.length} 张人和牌`);
-        } else {
-          console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始人和牌`);
-        }
-
-        // 发放初始史实牌
-        const initialShishiCards = this.decks.shishi.draw(GAME_CONSTANTS.INITIAL_SHISHI_CARDS);
-        if (initialShishiCards.length > 0) {
-          player.hand.shishi = initialShishiCards;
-          console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShishiCards.length} 张史实牌:`, 
-            JSON.stringify(initialShishiCards, null, 2));
-        } else {
-          console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始史实牌`);
-          player.hand.shishi = [];
-        }
-
-        // 发放初始神机牌
-        const initialShenqiCards = this.decks.shenqi.draw(GAME_CONSTANTS.INITIAL_SHENQI_CARDS);
-        if (initialShenqiCards.length > 0) {
-          player.hand.shenqi = initialShenqiCards;
-          console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShenqiCards.length} 张神机牌:`, 
-            JSON.stringify(initialShenqiCards, null, 2));
-        } else {
-          console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始神机牌`);
-          player.hand.shenqi = [];
-        }
-      });
-
       // 抽取第一张天时牌
       if (this.decks.tianshi && !this.decks.tianshi.isEmpty()) {
         this.activeTianshiCard = this.drawAndActivateTianshiCard();
@@ -446,10 +415,11 @@ class GameCore {
     if (allPlayersSelected) {
       console.log('[游戏] 所有玩家已选择国家，进入初始英雄选择阶段');
       this.phase = 'initial_hero_selection';
+      this.dealInitialCards(); // 发放初始卡牌
       this.dealInitialHeroCards();
     }
 
-    return true;
+    return { success: true, allPlayersSelected };
   }
 
   // 从指定牌堆中抽取指定数量的牌
@@ -589,8 +559,6 @@ class GameCore {
       player.hand.heroNeutral.push(neutralCard);
       console.log(`[中立英雄] 玩家 ${player.name} 获得卡牌:`, neutralCard);
     });
-
-    this.phase = 'playing';
   }
 
   // 抽取一张天时牌并使其生效
@@ -634,6 +602,41 @@ class GameCore {
   // 获取可选择的国家列表
   getAvailableCountries() {
     return COUNTRY_LIST.filter(country => !this.selectedCountries.has(country));
+  }
+
+  // 初始化锦囊市场
+  initializeJingnangMarket() {
+    const playerCount = this.players.length;
+    // 从未分配的史实牌中抽取玩家数量相等的卡牌
+    const marketCards = this.decks.shishi.draw(playerCount);
+    this.jingnangMarket = marketCards;
+  }
+
+  // 获取锦囊市场信息
+  getJingnangMarket() {
+    return this.jingnangMarket;
+  }
+
+  // 从锦囊市场购买卡牌
+  buyFromJingnangMarket(playerId, cardId) {
+    const player = this.players.find(p => p.id === playerId);
+    const cardIndex = this.jingnangMarket.findIndex(card => card.id === cardId);
+    
+    if (!player || cardIndex === -1) {
+      return false;
+    }
+
+    // 从市场移除卡牌并添加到玩家手牌
+    const card = this.jingnangMarket.splice(cardIndex, 1)[0];
+    player.addCard('shishi', card);
+
+    // 补充市场
+    if (this.decks.shishi.size() > 0) {
+      const newCard = this.decks.shishi.draw(1)[0];
+      this.jingnangMarket.push(newCard);
+    }
+
+    return true;
   }
 
   // 获取游戏状态
@@ -690,8 +693,45 @@ class GameCore {
       tianshiDeck: this.decks.tianshi.cards,
       initialCards: currentPlayer?.tempHeroCards,
       availableCountries: this.phase === 'country_selection' ? this.getAvailableCountries() : undefined,
-      selectedCountries: Array.from(this.selectedCountries)
+      selectedCountries: Array.from(this.selectedCountries),
+      jingnangMarket: this.jingnangMarket
     };
+  }
+
+  // 发放初始卡牌
+  dealInitialCards() {
+    this.players.forEach(player => {
+      // 发放初始人和牌
+      const initialRenheCards = this.decks.renhe.draw(GAME_CONSTANTS.INITIAL_RENHE_CARDS);
+      if (initialRenheCards.length > 0) {
+        player.hand.renhe = initialRenheCards;
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialRenheCards.length} 张人和牌`);
+      } else {
+        console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始人和牌`);
+      }
+
+      // 发放初始史实牌
+      const initialShishiCards = this.decks.shishi.draw(GAME_CONSTANTS.INITIAL_SHISHI_CARDS);
+      if (initialShishiCards.length > 0) {
+        player.hand.shishi = initialShishiCards;
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShishiCards.length} 张史实牌:`, 
+          JSON.stringify(initialShishiCards, null, 2));
+      } else {
+        console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始史实牌`);
+        player.hand.shishi = [];
+      }
+
+      // 发放初始神机牌
+      const initialShenqiCards = this.decks.shenqi.draw(GAME_CONSTANTS.INITIAL_SHENQI_CARDS);
+      if (initialShenqiCards.length > 0) {
+        player.hand.shenqi = initialShenqiCards;
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShenqiCards.length} 张神机牌:`, 
+          JSON.stringify(initialShenqiCards, null, 2));
+      } else {
+        console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始神机牌`);
+        player.hand.shenqi = [];
+      }
+    });
   }
 }
 

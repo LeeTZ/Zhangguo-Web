@@ -59,8 +59,9 @@ class GameManager {
     // 初始化游戏核心
     this.gameCore = new GameCore(this.players);
 
-    // 设置游戏阶段为初始英雄选择
-    this.gameCore.phase = 'initial_hero_selection';
+    // 设置游戏阶段为国家选择
+    this.currentPhase = 'country_selection';
+    this.gameCore.phase = 'country_selection';
 
     // 广播初始游戏状态
     this.broadcastGameState();
@@ -187,8 +188,8 @@ class GameManager {
       currentPlayerIndex: this.currentPlayerIndex
     });
     
-    return {
-      roomId: this.roomId,
+    // 获取游戏核心状态
+    const gameState = this.gameCore ? {
       phase: this.currentPhase,
       turnPhase: this.currentTurnPhase,
       currentPlayerIndex: this.currentPlayerIndex,
@@ -200,12 +201,37 @@ class GameManager {
         actionPoints: p.actionPoints,
         geoTokens: p.geoTokens,
         tributeTokens: p.tributeTokens,
-        handSize: this.gameCore ? this.gameCore.players.find(gp => gp.id === p.id)?.hand.length || 0 : 0,
-        isCurrentPlayer: this.currentPlayerIndex !== -1 && this.players[this.currentPlayerIndex].id === p.id
+        handSize: this.gameCore.players.find(gp => gp.id === p.id)?.hand.length || 0,
+        isCurrentPlayer: this.currentPlayerIndex !== -1 && this.players[this.currentPlayerIndex].id === p.id,
+        selectedCountry: this.gameCore.players.find(gp => gp.id === p.id)?.selectedCountry
       })),
-      countries: this.gameCore ? this.gameCore.countries : null,
-      turn: this.gameCore ? this.gameCore.turn : 0
+      countries: this.gameCore.countries,
+      turn: this.gameCore.turn,
+      availableCountries: this.currentPhase === 'country_selection' ? this.gameCore.getAvailableCountries() : undefined,
+      selectedCountries: Array.from(this.gameCore.selectedCountries || []),
+      initialCards: this.currentPhase === 'initial_hero_selection' ? 
+        this.gameCore.players[this.currentPlayerIndex]?.tempHeroCards : undefined,
+      market: this.gameCore.market,
+      activeTianshiCard: this.gameCore.activeTianshiCard,
+      jingnangMarket: this.gameCore.jingnangMarket
+    } : {
+      phase: this.currentPhase,
+      players: this.players.map(p => ({
+        id: p.id,
+        name: p.name,
+        socketId: p.socketId,
+        isHost: p.isHost
+      })),
+      countries: {},
+      turn: 0,
+      availableCountries: [],
+      selectedCountries: [],
+      market: [],
+      jingnangMarket: []
     };
+
+    console.log('Returning game state:', gameState);
+    return gameState;
   }
 
   // 处理玩家选择初始英杰牌
@@ -297,6 +323,11 @@ class GameManager {
     
     try {
       const result = this.gameCore.selectCountry(playerId, countryId);
+      
+      // 如果所有玩家都已选择国家，更新游戏阶段
+      if (result.allPlayersSelected) {
+        this.currentPhase = 'initial_hero_selection';
+      }
       
       // 广播更新后的游戏状态
       this.broadcastGameState();

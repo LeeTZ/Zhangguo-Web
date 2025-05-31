@@ -17,13 +17,13 @@ interface PlayerInfoProps {
 }
 
 interface StyledCardProps {
-  isCurrentPlayer?: boolean;
+  $isCurrentPlayer?: boolean;
 }
 
 const StyledCard = styled(Card)<StyledCardProps>`
   margin-bottom: 12px;
-  border: ${props => props.isCurrentPlayer ? '2px solid #1890ff' : '1px solid #d9d9d9'};
-  background: ${props => props.isCurrentPlayer ? '#e6f7ff' : '#fff'};
+  border: ${props => props.$isCurrentPlayer ? '2px solid #1890ff' : '1px solid #d9d9d9'};
+  background: ${props => props.$isCurrentPlayer ? '#e6f7ff' : '#fff'};
   
   .ant-card-body {
     padding: 8px;
@@ -210,7 +210,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
 
   return (
     <>
-      <StyledCard size="small" isCurrentPlayer={isCurrentPlayer}>
+      <StyledCard size="small" $isCurrentPlayer={isCurrentPlayer}>
         <InfoRow>
           <PlayerNameSection>
             {name}
@@ -247,7 +247,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           )}
           <HeroCardList>
             {heroCards.map((hero, index) => (
-              <HeroCardTag country={hero.country}>{hero.name}</HeroCardTag>
+              <HeroCardTag key={`${hero.id}-${index}`} country={hero.country}>{hero.name}</HeroCardTag>
             ))}
           </HeroCardList>
         </HeroSection>
@@ -261,7 +261,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
         width={600}
       >
         {heroCards.map((hero, index) => (
-          <HeroDetailCard key={index}>
+          <HeroDetailCard key={`modal-${hero.id}-${index}`}>
             <HeroTitle>{hero.name}</HeroTitle>
             <HeroInfo>
               <span>国家: {hero.country || '无所属'}</span>

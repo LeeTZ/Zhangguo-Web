@@ -36,7 +36,8 @@ const initialState: GameState = {
   activeTianshiCard: null,
   initialCards: [],
   availableCountries: [],
-  selectedCountries: []
+  selectedCountries: [],
+  jingnangMarket: []
 };
 
 const gameSlice = createSlice({

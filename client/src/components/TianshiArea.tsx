@@ -116,11 +116,10 @@ const CardDescription = styled.div`
 const CardEffect = styled.div`
   margin-top: 4px;
   color: #8c8c8c;
-  font-size: 12px;
+  font-size: 14px;
 `;
 
-const DeckCardItem = styled.div`
-  padding: 12px;
+const DeckCardItem = styled.div`  padding: 12px;
   border: 1px solid #f0f0f0;
   border-radius: 4px;
   margin-bottom: 8px;
@@ -144,7 +143,7 @@ const DeckCardName = styled.div`
 `;
 
 const DeckCardEffect = styled.div`
-  font-size: 12px;
+  font-size: px;
   color: #666;
 `;
 

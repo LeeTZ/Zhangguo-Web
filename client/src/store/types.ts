@@ -1,6 +1,6 @@
 import { TianshiCard } from '../data/tianshi';
 import { GamePhase } from '../types/game';
-import { CardType, HeroCard } from '../types/cards';
+import { CardType, HeroCard, RenheCard, ShishiCard } from '../types/cards';
 
 export type { CardType };
 export type { HeroCard };
@@ -82,6 +82,7 @@ export interface GameState {
   initialCards?: HeroCard[];
   availableCountries?: string[];
   selectedCountries?: string[];
+  jingnangMarket: ShishiCard[];
 }
 
 // 服务器房间类型

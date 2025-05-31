@@ -1,12 +1,13 @@
 import React from 'react';
 import { Card } from 'antd';
 import styled from '@emotion/styled';
-import { GameBoardProps, Player } from 'types/props';
-import { TianshiArea } from 'components/TianshiArea';
-import { CountriesArea } from 'components/CountriesArea';
-import { PlayerInfo } from 'components/PlayerInfo';
-import { HeroCard, RenheCard, ShishiCard, ShenqiCard } from 'types/cards';
+import { GameState, Player } from '../types/props';
+import { TianshiArea } from './TianshiArea';
+import { CountriesArea } from './CountriesArea';
+import { PlayerInfo } from './PlayerInfo';
+import { HeroCard, RenheCard, ShishiCard, ShenqiCard, CardType } from 'types/cards';
 import HandCardList from 'components/HandCardList';
+import { JingnangMarket } from './JingnangMarket';
 
 // 自定义紧凑型 Card 样式
 const CompactCard = styled(Card)`
@@ -85,7 +86,28 @@ const formatDeckCount = (deck: any): number => {
   return 0;
 };
 
-export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
+interface GameBoardProps {
+  gameState: GameState;
+  onSelectCountry?: (countryId: string) => void;
+  onSelectInitialHeroCards?: (cardIds: string[]) => void;
+  onBuyCard?: (cardId: string | number) => void;
+}
+
+const renderHandCards = (cards: CardType[], type: string) => {
+  return cards.map((card) => ({
+    id: card.id,
+    name: card.name,
+    description: card.description || '',
+    type: type
+  }));
+};
+
+export const GameBoard: React.FC<GameBoardProps> = ({
+  gameState,
+  onSelectCountry,
+  onSelectInitialHeroCards,
+  onBuyCard
+}) => {
   const currentPlayerId = gameState.currentPlayer?.id;
 
   // 将服务器返回的玩家信息转换为组件需要的格式
@@ -198,7 +220,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
             tianshiDeckCount={formatDeckCount(gameState.decks.tianshi)}
             tianshiDeck={gameState.tianshiDeck}
           />
-          
+          <JingnangMarket
+            marketCards={gameState.jingnangMarket}
+            onBuyCard={onBuyCard}
+          />
           <CountriesArea countries={gameState.countries} />
           
           <div>回合: {gameState.round}</div>
