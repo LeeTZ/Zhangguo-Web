@@ -5,63 +5,55 @@ import { ShishiCard as ShishiCardType } from '../types/cards';
 
 interface ShishiCardProps {
   card: ShishiCardType;
-  isSelected?: boolean;
-  onClick?: () => void;
+  isSelected: boolean;
+  onClick: () => void;
 }
 
-const CardContainer = styled.div<{ isSelected?: boolean }>`
+const CardContainer = styled.div<{ isSelected: boolean }>`
   width: 50px;
   height: 70px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  padding: 3px;
-  background: ${props => props.isSelected ? '#e6f7ff' : 'white'};
+  border: 1px solid ${props => props.isSelected ? '#1890ff' : '#d9d9d9'};
+  border-radius: 4px;
+  padding: 4px;
+  background: ${props => props.isSelected ? '#e6f7ff' : '#f6ffed'};
   cursor: pointer;
   transition: all 0.3s;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &:hover {
     border-color: #1890ff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   }
 `;
 
 const CardName = styled.div`
+  font-size: 10px;
   font-weight: bold;
-  font-size: 12px;
   text-align: center;
-  width: 100%;
-  white-space: nowrap;
+  word-break: break-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  max-height: 100%;
+  padding: 2px;
 `;
 
-const ShishiCard: React.FC<ShishiCardProps> = ({
-  card,
-  isSelected = false,
-  onClick
-}) => {
+const ShishiCard: React.FC<ShishiCardProps> = ({ card, isSelected, onClick }) => {
   const tooltipContent = (
-    <div>
-      <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>{card.name}</div>
-      <div style={{ color: '#666', marginBottom: '8px' }}>
-        {card.countries.join('、')}
-      </div>
+    <>
       <div>{card.description}</div>
-      {card.story && (
-        <>
-          <br />
-          <div style={{ color: '#666', fontStyle: 'italic' }}>{card.story}</div>
-        </>
+      {card.story && <div style={{ marginTop: '8px', fontStyle: 'italic' }}>{card.story}</div>}
+      {card.countries && card.countries.length > 0 && (
+        <div style={{ marginTop: '4px' }}>相关国家：{card.countries.join('、')}</div>
       )}
-    </div>
+    </>
   );
 
   return (
-    <Tooltip title={tooltipContent} placement="right">
+    <Tooltip title={tooltipContent} placement="top">
       <CardContainer isSelected={isSelected} onClick={onClick}>
         <CardName>{card.name}</CardName>
       </CardContainer>

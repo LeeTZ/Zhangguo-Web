@@ -8,6 +8,7 @@ interface PlayerInfoProps {
   handSize: number;
   renheCardCount: number;
   shishiCardCount: number;
+  shenqiCardCount: number;
   geoTokens: number;
   tributeTokens: number;
   heroCards: HeroCard[];
@@ -197,6 +198,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   handSize,
   renheCardCount,
   shishiCardCount,
+  shenqiCardCount,
   geoTokens,
   tributeTokens,
   heroCards,
@@ -204,7 +206,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   score = 0,
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const totalHandCards = renheCardCount + shishiCardCount;
+  const totalHandCards = renheCardCount + shishiCardCount + shenqiCardCount;
 
   return (
     <>

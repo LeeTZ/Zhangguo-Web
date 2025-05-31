@@ -5,7 +5,7 @@ import { GameBoardProps, Player } from 'types/props';
 import { TianshiArea } from 'components/TianshiArea';
 import { CountriesArea } from 'components/CountriesArea';
 import { PlayerInfo } from 'components/PlayerInfo';
-import { HeroCard, RenheCard, ShishiCard } from 'types/cards';
+import { HeroCard, RenheCard, ShishiCard, ShenqiCard } from 'types/cards';
 import HandCardList from 'components/HandCardList';
 
 // 自定义紧凑型 Card 样式
@@ -25,7 +25,7 @@ const CompactCard = styled(Card)`
 // 样式组件定义
 const BoardContainer = styled.div`
   display: grid;
-  grid-template-columns: 400px 1fr;
+  grid-template-columns: 450px 1fr;
   gap: 16px;
   padding: 24px;
   height: 100vh;
@@ -129,6 +129,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
         handSize,
         renheCardCount: (playerHand.renhe || []).length,
         shishiCardCount: (playerHand.shishi || []).length,
+        shenqiCardCount: (playerHand.shenqi || []).length,
         geoTokens: player.geoTokens || 3,
         tributeTokens: player.tributeTokens || 0,
         heroCards: allHeroCards,
@@ -154,6 +155,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
                 handSize={player.handSize}
                 renheCardCount={player.renheCardCount}
                 shishiCardCount={player.shishiCardCount}
+                shenqiCardCount={player.shenqiCardCount}
                 geoTokens={player.geoTokens}
                 tributeTokens={player.tributeTokens}
                 heroCards={player.heroCards}
@@ -169,6 +171,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
                   }))}
                 shishiCards={player.hand.shishi
                   .filter((card): card is ShishiCard => card.type === 'shishi')
+                  .map(card => ({
+                    ...card,
+                    id: String(card.id)
+                  }))}
+                shenqiCards={player.hand.shenqi
+                  .filter((card): card is ShenqiCard => card.type === 'shenqi')
                   .map(card => ({
                     ...card,
                     id: String(card.id)

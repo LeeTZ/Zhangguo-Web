@@ -2,7 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 import RenheCard from './RenheCard';
 import ShishiCard from './ShishiCard';
-import { RenheCard as RenheCardType, ShishiCard as ShishiCardType } from '../types/cards';
+import ShenqiCard from './ShenqiCard';
+import { RenheCard as RenheCardType, ShishiCard as ShishiCardType, ShenqiCard as ShenqiCardType } from '../types/cards';
 
 // 定义通用的卡牌类型，确保 id 是字符串
 type BaseCard = {
@@ -13,10 +14,12 @@ type BaseCard = {
 
 type RenheCardWithStringId = BaseCard & Omit<RenheCardType, 'id'>;
 type ShishiCardWithStringId = BaseCard & Omit<ShishiCardType, 'id'>;
+type ShenqiCardWithStringId = BaseCard & Omit<ShenqiCardType, 'id'>;
 
 interface HandCardListProps {
   renheCards: RenheCardWithStringId[];
   shishiCards: ShishiCardWithStringId[];
+  shenqiCards: ShenqiCardWithStringId[];
   selectedCardIds: string[];
   onCardClick: (cardId: string) => void;
 }
@@ -76,10 +79,11 @@ const EmptyText = styled.div`
 const HandCardList: React.FC<HandCardListProps> = ({
   renheCards,
   shishiCards,
+  shenqiCards,
   selectedCardIds,
   onCardClick
 }) => {
-  const hasCards = (renheCards?.length > 0 || shishiCards?.length > 0);
+  const hasCards = (renheCards?.length > 0 || shishiCards?.length > 0 || shenqiCards?.length > 0);
 
   if (!hasCards) {
     return (
@@ -106,6 +110,14 @@ const HandCardList: React.FC<HandCardListProps> = ({
         ))}
         {shishiCards?.map((card) => (
           <ShishiCard
+            key={card.id}
+            card={card}
+            isSelected={selectedCardIds.includes(card.id)}
+            onClick={() => onCardClick(card.id)}
+          />
+        ))}
+        {shenqiCards?.map((card) => (
+          <ShenqiCard
             key={card.id}
             card={card}
             isSelected={selectedCardIds.includes(card.id)}

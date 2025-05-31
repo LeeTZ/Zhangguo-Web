@@ -1,10 +1,10 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Tooltip } from 'antd';
-import { RenheCard as RenheCardType } from '../types/cards';
+import { ShenqiCard as ShenqiCardType } from '../types/cards';
 
-interface RenheCardProps {
-  card: RenheCardType;
+interface ShenqiCardProps {
+  card: ShenqiCardType;
   isSelected: boolean;
   onClick: () => void;
 }
@@ -15,7 +15,7 @@ const CardContainer = styled.div<{ isSelected: boolean }>`
   border: 1px solid ${props => props.isSelected ? '#1890ff' : '#d9d9d9'};
   border-radius: 4px;
   padding: 4px;
-  background: ${props => props.isSelected ? '#e6f7ff' : '#fff7e6'};
+  background: ${props => props.isSelected ? '#e6f7ff' : '#f9f0ff'};
   cursor: pointer;
   transition: all 0.3s;
   flex-shrink: 0;
@@ -29,7 +29,7 @@ const CardContainer = styled.div<{ isSelected: boolean }>`
 `;
 
 const CardName = styled.div`
-  font-size: 10px;
+  font-size: 12px;
   font-weight: bold;
   text-align: center;
   word-break: break-all;
@@ -41,23 +41,9 @@ const CardName = styled.div`
   padding: 2px;
 `;
 
-const RenheCard: React.FC<RenheCardProps> = ({ card, isSelected, onClick }) => {
-  const tooltipContent = (
-    <>
-      <div>{card.description}</div>
-      {card.effect && (
-        <div style={{ marginTop: '4px' }}>
-          效果：{card.effect.type} {card.effect.value > 0 ? '+' : ''}{card.effect.value}
-        </div>
-      )}
-      {card.cardType && (
-        <div style={{ marginTop: '4px' }}>类型：{card.cardType}</div>
-      )}
-    </>
-  );
-
+const ShenqiCard: React.FC<ShenqiCardProps> = ({ card, isSelected, onClick }) => {
   return (
-    <Tooltip title={tooltipContent} placement="top">
+    <Tooltip title={card.description} placement="top">
       <CardContainer isSelected={isSelected} onClick={onClick}>
         <CardName>{card.name}</CardName>
       </CardContainer>
@@ -65,4 +51,4 @@ const RenheCard: React.FC<RenheCardProps> = ({ card, isSelected, onClick }) => {
   );
 };
 
-export default RenheCard;
+export default ShenqiCard; 

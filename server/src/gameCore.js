@@ -45,7 +45,8 @@ const GAME_CONSTANTS = {
     KEEP: { MIN: 2, MAX: 3 } // 保留数量范围
   },
   INITIAL_RENHE_CARDS: 3,   // 初始人和牌数量
-  INITIAL_SHISHI_CARDS: 2   // 初始史实牌数量
+  INITIAL_SHISHI_CARDS: 2,  // 初始史实牌数量
+  INITIAL_SHENQI_CARDS: 1   // 初始神机牌数量（每位玩家1张）
 };
 
 // 国家对象
@@ -351,6 +352,12 @@ class GameCore {
       console.log('[游戏核心] 史实牌堆初始化完成，包含', this.decks.shishi.size(), '张牌');
       console.log('[游戏核心] 史实牌堆前5张:', JSON.stringify(this.decks.shishi.cards.slice(0, 5), null, 2));
 
+      // 初始化神机牌堆
+      const { cards: shenqiCards } = require('./data/shenqiCards');
+      this.decks.shenqi = new Deck(shenqiCards);
+      this.decks.shenqi.shuffle();
+      console.log('[游戏核心] 神机牌堆初始化完成，包含', this.decks.shenqi.size(), '张牌');
+
       // 为每个玩家发放初始牌
       this.players.forEach(player => {
         // 发放初始人和牌
@@ -372,12 +379,18 @@ class GameCore {
           console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始史实牌`);
           player.hand.shishi = [];
         }
-      });
 
-      // 初始化其他牌堆
-      this.decks.shenqi = new Deck([]);
-      this.decks.xianji = new Deck([]);
-      this.decks.yuanmou = new Deck([]);
+        // 发放初始神机牌
+        const initialShenqiCards = this.decks.shenqi.draw(GAME_CONSTANTS.INITIAL_SHENQI_CARDS);
+        if (initialShenqiCards.length > 0) {
+          player.hand.shenqi = initialShenqiCards;
+          console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShenqiCards.length} 张神机牌:`, 
+            JSON.stringify(initialShenqiCards, null, 2));
+        } else {
+          console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始神机牌`);
+          player.hand.shenqi = [];
+        }
+      });
 
       // 抽取第一张天时牌
       if (this.decks.tianshi && !this.decks.tianshi.isEmpty()) {
