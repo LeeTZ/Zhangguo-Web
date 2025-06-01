@@ -32,10 +32,11 @@ const BoardContainer = styled.div`
   grid-template-columns: 400px minmax(0, 1fr) 300px;
   gap: 16px;
   padding: 16px;
-  height: 100vh;
+  height: calc(100vh - 80px);
   max-width: 1750px;
   margin: 0 auto;
   width: 100%;
+  overflow: hidden;
 `;
 
 const PlayerArea = styled.div`
@@ -43,9 +44,15 @@ const PlayerArea = styled.div`
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 100vh;
+  height: 100%;
   overflow-y: auto;
   padding-right: 4px;
+  padding-bottom: 16px;
+  
+  /* 在小屏幕下增加底部边距 */
+  @media (max-height: 768px) {
+    padding-bottom: 32px;
+  }
 
   /* 自定义滚动条样式 */
   &::-webkit-scrollbar {
@@ -67,16 +74,65 @@ const PlayerSection = styled.div`
   .ant-card {
     margin-bottom: 0;
   }
+
+  /* 确保最后一个 PlayerSection 有足够的底部边距 */
+  &:last-child {
+    margin-bottom: 16px;
+  }
 `;
 
 const MainArea = styled.div`
   grid-column: 2;
+  height: 100%;
+  overflow-y: auto;
+  padding-bottom: 16px;
+  
+  @media (max-height: 768px) {
+    padding-bottom: 32px;
+  }
+
+  /* 自定义滚动条样式 */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+  }
 `;
 
 const LogArea = styled.div`
   grid-column: 3;
-  height: 100vh;
-  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const GameLogContainer = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 16px;
+  
+  @media (max-height: 768px) {
+    padding-bottom: 32px;
+  }
+
+  /* 自定义滚动条样式 */
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 2px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+  }
 `;
 
 const ActionArea = styled.div`
@@ -86,44 +142,58 @@ const ActionArea = styled.div`
   right: 0;
   background: #fff;
   border-top: 1px solid #e8e8e8;
-  padding: 32px;
+  padding: 8px 32px;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
   z-index: 1000;
+  height: 80px;
+  display: flex;
+  align-items: center;
 `;
 
 const ActionContent = styled.div`
   max-width: 1750px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; // 三列布局：左侧文字、中间按钮、右侧空白
   align-items: center;
-  gap: 16px;
+  gap: 24px;
+  width: 100%;
+  height: 100%;
 `;
 
 const ActionInfo = styled.div`
   color: #666;
-  text-align: center;
+  text-align: left;
+  min-width: 0; // 防止文字溢出
   
   h3 {
-    font-size: 20px;
-    margin-bottom: 12px;
+    font-size: 16px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   p {
-    font-size: 16px;
+    font-size: 14px;
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 `;
 
 const ActionButtons = styled.div`
   display: flex;
-  gap: 16px;
-  justify-content: center;
+  gap: 12px;
+  justify-content: center; // 按钮居中对齐
+  flex-shrink: 0;
   
   .ant-btn {
-    height: 44px;
-    padding: 0 32px;
-    font-size: 16px;
+    height: 32px;
+    padding: 0 16px;
+    font-size: 14px;
+    min-width: 80px;
   }
 `;
 
@@ -557,7 +627,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         </MainArea>
 
         <LogArea>
-          <GameLog logs={gameLogs} />
+          <GameLogContainer>
+            <GameLog logs={gameLogs} />
+          </GameLogContainer>
         </LogArea>
       </BoardContainer>
       <ActionArea>
