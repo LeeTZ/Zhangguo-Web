@@ -26,13 +26,13 @@ const CompactCard = styled(Card)`
 // 样式组件定义
 const BoardContainer = styled.div`
   display: grid;
-  grid-template-columns: 450px 1fr;
-  gap: 16px;
-  padding: 24px;
+  grid-template-columns: 600px 1fr;
+  gap: 24px;
+  padding: 32px;
   height: 100vh;
-  max-width: 1600px;
+  max-width: 2800px;
   margin: 0 auto;
-  width: 95%;
+  width: 100%;
 `;
 
 const PlayerArea = styled.div`
@@ -152,7 +152,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         renheCardCount: (playerHand.renhe || []).length,
         shishiCardCount: (playerHand.shishi || []).length,
         shenqiCardCount: (playerHand.shenqi || []).length,
-        geoTokens: player.geoTokens || 3,
+        geoTokens: player.geoTokens || 0,
         tributeTokens: player.tributeTokens || 0,
         heroCards: allHeroCards,
         isHost: player.isHost,

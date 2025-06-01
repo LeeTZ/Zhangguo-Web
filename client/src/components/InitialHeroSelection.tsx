@@ -110,8 +110,8 @@ export const InitialHeroSelection: React.FC<InitialHeroSelectionProps> = ({
       if (prev.includes(stringId)) {
         return prev.filter(id => id !== stringId);
       } else {
-        if (prev.length >= 3) {
-          message.warning('最多只能选择3张英杰牌');
+        if (prev.length >= 2) {
+          message.warning('只能选择2张英杰牌');
           return prev;
         }
         return [...prev, stringId];
@@ -120,8 +120,8 @@ export const InitialHeroSelection: React.FC<InitialHeroSelectionProps> = ({
   };
 
   const handleConfirm = () => {
-    if (selectedCards.length < 2) {
-      message.error('请至少选择2张英杰牌');
+    if (selectedCards.length !== 2) {
+      message.error('请选择2张英杰牌');
       return;
     }
     onCardsSelected(selectedCards);
@@ -130,7 +130,7 @@ export const InitialHeroSelection: React.FC<InitialHeroSelectionProps> = ({
   return (
     <SelectionContainer>
       <h2>选择初始英杰牌</h2>
-      <p>请从以下英杰牌中选择2-3张作为你的初始英杰</p>
+      <p>请从以下英杰牌中选择2张作为你的初始英杰</p>
       
       <CardGrid>
         {initialCards.map(card => {
@@ -163,9 +163,9 @@ export const InitialHeroSelection: React.FC<InitialHeroSelectionProps> = ({
           type="primary"
           size="large"
           onClick={handleConfirm}
-          disabled={selectedCards.length < 2}
+          disabled={selectedCards.length !== 2}
         >
-          确认选择 ({selectedCards.length}/3)
+          确认选择 ({selectedCards.length}/2)
         </Button>
       </ButtonContainer>
     </SelectionContainer>

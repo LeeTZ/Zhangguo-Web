@@ -39,15 +39,15 @@ const GAME_CONSTANTS = {
     6: 8,  // 6人游戏8张
     7: 8   // 7人游戏8张
   },
-  INITIAL_GEO_TOKENS: 3,    // 初始地利标记数量
+  INITIAL_GEO_TOKENS: 5,    // 初始地利标记数量
   INITIAL_HERO_CARDS: {     // 初始英杰牌数量
     DRAW: 4,               // 抽取数量
-    KEEP: { MIN: 2, MAX: 3 } // 保留数量范围
+    KEEP: { MIN: 2, MAX: 2 } // 保留数量固定为2张
   },
-  INITIAL_RENHE_CARDS: 3,   // 初始人和牌数量
+  INITIAL_RENHE_CARDS: 4,   // 初始人和牌数量
   INITIAL_SHISHI_CARDS: 2,  // 初始史实牌数量
   INITIAL_SHENQI_CARDS: 1,  // 初始神机牌数量（每位玩家1张）
-  JINGNANG_MARKET_SIZE: 'players' // 锦囊市场的卡牌数量等于玩家数
+  JINGNANG_MARKET_SIZE: 7   // 锦囊市场的卡牌数量固定为7张
 };
 
 // 国家对象
@@ -489,8 +489,8 @@ class GameCore {
       throw new Error('没有可选择的英雄牌');
     }
 
-    if (selectedCardIds.length < 2 || selectedCardIds.length > 3) {
-      throw new Error('必须选择2-3张英雄牌');
+    if (selectedCardIds.length !== 2) {
+      throw new Error('必须选择2张英雄牌');
     }
 
     // 验证选择的卡牌ID是否有效
@@ -606,9 +606,8 @@ class GameCore {
 
   // 初始化锦囊市场
   initializeJingnangMarket() {
-    const playerCount = this.players.length;
-    // 从未分配的史实牌中抽取玩家数量相等的卡牌
-    const marketCards = this.decks.shishi.draw(playerCount);
+    // 从未分配的史实牌中抽取7张卡牌
+    const marketCards = this.decks.shishi.draw(GAME_CONSTANTS.JINGNANG_MARKET_SIZE);
     this.jingnangMarket = marketCards;
   }
 
