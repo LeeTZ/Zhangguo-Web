@@ -108,25 +108,6 @@ class GameManager {
     const hostPlayer = this.players.find(p => p.isHost);
     if (!hostPlayer) return;
 
-    // 翻开天时牌并结算
-    const tianshiCard = this.gameCore.drawAndActivateTianshiCard();
-    if (tianshiCard) {
-      // 广播天时牌信息
-      this.broadcast('tianshi_card_drawn', {
-        card: tianshiCard,
-        playerId: hostPlayer.id
-      });
-
-      // 结算天时牌效果
-      this.gameCore.resolveTianshiCard(tianshiCard);
-      
-      // 检查玩家英杰牌目标是否达成
-      this.gameCore.checkHeroGoals();
-
-      // 广播更新后的游戏状态
-      this.broadcastGameState();
-    }
-
     // 检查周天子标记
     const kingTokenCountry = Object.entries(this.gameCore.countries)
       .find(([_, country]) => country.hasKingToken)?.[0];
@@ -466,6 +447,50 @@ class GameManager {
 
     // 广播更新后的游戏状态
     this.broadcastGameState();
+  }
+
+  // 处理翻开天时牌
+  handleDrawTianshiCard(playerId) {
+    // 检查是否是盟主
+    const player = this.players.find(p => p.id === playerId);
+    if (!player || !player.isHost) {
+      return;
+    }
+
+    // 检查是否已经有激活的天时牌
+    if (this.gameCore.activeTianshiCard) {
+      return;
+    }
+
+    // 翻开天时牌并结算
+    const tianshiCard = this.gameCore.drawAndActivateTianshiCard();
+    if (tianshiCard) {
+      // 广播天时牌信息
+      this.broadcast('tianshi_card_drawn', {
+        card: tianshiCard,
+        playerId: playerId
+      });
+
+      // 结算天时牌效果
+      this.gameCore.resolveTianshiCard(tianshiCard);
+      
+      // 检查玩家英杰牌目标是否达成
+      this.gameCore.checkHeroGoals();
+
+      // 广播更新后的游戏状态
+      this.broadcastGameState();
+    }
+  }
+
+  // 处理WebSocket消息
+  handleMessage(playerId, message) {
+    switch (message.type) {
+      // ... existing cases ...
+      case 'DRAW_TIANSHI_CARD':
+        this.handleDrawTianshiCard(playerId);
+        break;
+      // ... existing code ...
+    }
   }
 }
 

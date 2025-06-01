@@ -881,8 +881,7 @@ class GameCore {
       const initialShishiCards = this.decks.shishi.draw(GAME_CONSTANTS.INITIAL_SHISHI_CARDS);
       if (initialShishiCards.length > 0) {
         player.hand.shishi = initialShishiCards;
-        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShishiCards.length} 张史实牌:`, 
-          JSON.stringify(initialShishiCards, null, 2));
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShishiCards.length} 张史实牌:`);
       } else {
         console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始史实牌`);
         player.hand.shishi = [];
@@ -892,8 +891,7 @@ class GameCore {
       const initialShenqiCards = this.decks.shenqi.draw(GAME_CONSTANTS.INITIAL_SHENQI_CARDS);
       if (initialShenqiCards.length > 0) {
         player.hand.shenqi = initialShenqiCards;
-        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShenqiCards.length} 张神机牌:`, 
-          JSON.stringify(initialShenqiCards, null, 2));
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShenqiCards.length} 张神机牌:`);
       } else {
         console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始神机牌`);
         player.hand.shenqi = [];

@@ -7,7 +7,7 @@ import { Modal } from 'antd';
 interface TianshiAreaProps {
   activeTianshiCard: TianshiCard | null;
   tianshiDeckCount: number;
-  tianshiDeck?: TianshiCard[]; // 添加天时牌堆数据
+  tianshiDeck?: TianshiCard[];
 }
 
 // 格式化效果文本
@@ -20,12 +20,13 @@ const formatEffect = (effect: string | { type: string; value: number } | undefin
 const Container = styled.div`
   display: flex;
   gap: 16px;
-  padding: 16px;
+  padding: 12px;
   margin-bottom: 12px;
   background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(250, 250, 250, 0.95));
   border-radius: 8px;
   align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  height: 90px;
 `;
 
 const DeckSection = styled.div`
@@ -33,6 +34,8 @@ const DeckSection = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  height: 100%;
+  justify-content: center;
 `;
 
 const DeckTitle = styled.div`
@@ -50,7 +53,7 @@ const DeckCount = styled.div`
 
 const CardContainer = styled.div`
   width: 50px;
-  height: 70px;
+  height: 60px;
   border: 1px solid #e8e8e8;
   border-radius: 6px;
   display: flex;
@@ -84,6 +87,8 @@ const ActiveCardSection = styled.div`
   flex: 1;
   display: flex;
   gap: 8px;
+  height: 100%;
+  align-items: center;
 `;
 
 const ActiveCardTitle = styled.div`
@@ -96,7 +101,7 @@ const ActiveCardTitle = styled.div`
 const ActiveCardContent = styled.div`
   display: flex;
   gap: 12px;
-  align-items: flex-start;
+  align-items: center;
 `;
 
 const DescriptionContainer = styled.div`
@@ -108,18 +113,19 @@ const DescriptionContainer = styled.div`
 
 const CardDescription = styled.div`
   color: #595959;
-  font-size: 20px;
-  line-height: 1.8;
+  font-size: 16px;
+  line-height: 1.4;
   font-weight: 500;
 `;
 
 const CardEffect = styled.div`
   margin-top: 4px;
   color: #8c8c8c;
-  font-size: 14px;
+  font-size: 12px;
 `;
 
-const DeckCardItem = styled.div`  padding: 12px;
+const DeckCardItem = styled.div`
+  padding: 12px;
   border: 1px solid #f0f0f0;
   border-radius: 4px;
   margin-bottom: 8px;
@@ -143,11 +149,11 @@ const DeckCardName = styled.div`
 `;
 
 const DeckCardEffect = styled.div`
-  font-size: px;
+  font-size: 12px;
   color: #666;
 `;
 
-export const TianshiArea: React.FC<TianshiAreaProps> = ({ 
+export const TianshiArea: React.FC<TianshiAreaProps> = ({
   activeTianshiCard,
   tianshiDeckCount,
   tianshiDeck = []
@@ -166,10 +172,10 @@ export const TianshiArea: React.FC<TianshiAreaProps> = ({
 
         <ActiveCardSection>
           <div style={{ flex: 1 }}>
-            {activeTianshiCard ? (
-              <>
-                <ActiveCardTitle>当前天时：</ActiveCardTitle>
-                <ActiveCardContent>
+            <ActiveCardTitle>当前天时：</ActiveCardTitle>
+            <ActiveCardContent>
+              {activeTianshiCard ? (
+                <>
                   <ActiveCardContainer>
                     {activeTianshiCard.name}
                   </ActiveCardContainer>
@@ -181,14 +187,11 @@ export const TianshiArea: React.FC<TianshiAreaProps> = ({
                       </CardEffect>
                     )}
                   </DescriptionContainer>
-                </ActiveCardContent>
-              </>
-            ) : (
-              <>
-                <ActiveCardTitle>当前天时：</ActiveCardTitle>
+                </>
+              ) : (
                 <div style={{ color: '#999' }}>无</div>
-              </>
-            )}
+              )}
+            </ActiveCardContent>
           </div>
         </ActiveCardSection>
       </Container>

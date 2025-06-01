@@ -22,21 +22,22 @@ interface StyledCardProps {
   $isCurrentPlayer?: boolean;
 }
 
-const StyledCard = styled(Card)<StyledCardProps>`
-  margin-bottom: 12px;
-  border: ${props => props.$isCurrentPlayer ? '2px solid #1890ff' : '1px solid #d9d9d9'};
-  background: ${props => props.$isCurrentPlayer ? '#e6f7ff' : '#fff'};
-  
-  .ant-card-body {
-    padding: 8px;
-  }
+const PlayerContainer = styled.div<{ $isCurrentPlayer: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: ${props => props.$isCurrentPlayer ? 'linear-gradient(to right, #e6f7ff, #f0f7ff)' : 'linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(250, 250, 250, 0.95))'};
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid ${props => props.$isCurrentPlayer ? '#91d5ff' : 'transparent'};
 `;
 
 const InfoRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 4px;
+  margin-bottom: 2px;
   flex-wrap: wrap;
 `;
 
@@ -44,17 +45,29 @@ const PlayerNameSection = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
-  color: #000000;
-  font-weight: bold;
   flex: 1;
+  justify-content: space-between;
+`;
+
+const PlayerName = styled.div`
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+`;
+
+const PlayerStats = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const InfoItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
+  gap: 2px;
+  font-size: 12px;
   white-space: nowrap;
 `;
 
@@ -73,24 +86,39 @@ const TokenIcon = styled.span<{ type: 'geo' | 'tribute' }>`
 const HeroSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 2px;
+  gap: 4px;
+  margin-top: 0;
+  height: 24px;
+  overflow: hidden;
+  justify-content: space-between;
 `;
 
 const HeroCardList = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  flex-wrap: nowrap;
+  gap: 2px;
   flex: 1;
+  overflow-x: auto;
+  padding: 0 2px;
+  margin-right: 4px;
+
+  &::-webkit-scrollbar {
+    height: 2px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+  }
 `;
 
 const HeroCardTag = styled.span<{ country: string }>`
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  margin-right: 4px;
-  margin-bottom: 4px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 11px;
+  margin-right: 2px;
   background: ${props => {
     switch (props.country) {
       case '齐': return 'linear-gradient(145deg, #ffccc7, #fff1f0)';
@@ -107,6 +135,7 @@ const HeroCardTag = styled.span<{ country: string }>`
   color: #434343;
   border: 1px solid rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
+  white-space: nowrap;
   
   &:hover {
     transform: translateY(-1px);
@@ -209,10 +238,10 @@ const RenheCardIcon = styled.span`
 const HostTag = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  gap: 2px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 11px;
   background: #fffbe6;
   border: 1px solid #ffe58f;
   color: #d48806;
@@ -235,10 +264,10 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   const totalHandCards = renheCardCount + shishiCardCount + shenqiCardCount;
 
   return (
-    <>
-      <StyledCard size="small" $isCurrentPlayer={isCurrentPlayer}>
-        <InfoRow>
-          <PlayerNameSection>
+    <PlayerContainer $isCurrentPlayer={isCurrentPlayer}>
+      <InfoRow>
+        <PlayerNameSection>
+          <PlayerName>
             {name}
             {isHost && (
               <HostTag>
@@ -246,6 +275,8 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
                 盟主
               </HostTag>
             )}
+          </PlayerName>
+          <PlayerStats>
             <InfoItem>
               <span>得分</span>
               <ScoreIcon>{score}</ScoreIcon>
@@ -264,26 +295,26 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
               <span>贡品</span>
               <TokenIcon type="tribute">{tributeTokens}</TokenIcon>
             </InfoItem>
-          </PlayerNameSection>
-        </InfoRow>
-        
-        <HeroSection>
-          {heroCards.length > 0 && (
-            <Button 
-              type="link" 
-              onClick={() => setIsModalVisible(true)} 
-              style={{ padding: '0 4px', height: 'auto', fontSize: '13px' }}
-            >
-              英杰详情
-            </Button>
-          )}
-          <HeroCardList>
-            {heroCards.map((hero, index) => (
-              <HeroCardTag key={`${hero.id}-${index}`} country={hero.country}>{hero.name}</HeroCardTag>
-            ))}
-          </HeroCardList>
-        </HeroSection>
-      </StyledCard>
+          </PlayerStats>
+        </PlayerNameSection>
+      </InfoRow>
+      
+      <HeroSection>
+        <HeroCardList>
+          {heroCards.map((hero, index) => (
+            <HeroCardTag key={`${hero.id}-${index}`} country={hero.country}>{hero.name}</HeroCardTag>
+          ))}
+        </HeroCardList>
+        {heroCards.length > 0 && (
+          <Button 
+            type="link" 
+            onClick={() => setIsModalVisible(true)} 
+            style={{ padding: '0 4px', height: 'auto', fontSize: '13px' }}
+          >
+            英杰详情
+          </Button>
+        )}
+      </HeroSection>
 
       <Modal
         title="英杰详情"
@@ -305,6 +336,6 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
           </HeroDetailCard>
         ))}
       </Modal>
-    </>
+    </PlayerContainer>
   );
 }; 

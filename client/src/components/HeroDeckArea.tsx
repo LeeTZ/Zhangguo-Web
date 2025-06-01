@@ -26,29 +26,21 @@ const Container = styled.div`
 
 const DeckRow = styled.div`
   display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 4px;
-`;
-
-const DeckSection = styled.div`
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-`;
+  gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 4px 0;
 
-const DeckTitle = styled.div`
-  font-size: 12px;
-  color: #595959;
-  margin-bottom: 0;
-  font-weight: 500;
-`;
-
-const DeckCount = styled.div`
-  font-size: 11px;
-  color: #8c8c8c;
-  font-weight: 500;
+  &::-webkit-scrollbar {
+    height: 2px;
+  }
+  &::-webkit-scrollbar-track {
+    background: #f0f0f0;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #ccc;
+  }
 `;
 
 const DeckContainer = styled.div<{ country: string }>`
@@ -82,6 +74,13 @@ const DeckContainer = styled.div<{ country: string }>`
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
     border-color: rgba(0, 0, 0, 0.2);
   }
+`;
+
+const DeckTitle = styled.div`
+  font-size: 12px;
+  color: #595959;
+  margin-bottom: 0;
+  font-weight: 500;
 `;
 
 const CountryName = styled.div`
@@ -257,43 +256,17 @@ export const HeroDeckArea: React.FC<HeroDeckAreaProps> = ({ heroDecks }) => {
     setSelectedCountry(country);
   };
 
-  const handleModalClose = () => {
-    setSelectedCountry(null);
-  };
-
   // 确保heroDecks是有效的对象
   if (!heroDecks || typeof heroDecks !== 'object') {
     return null;
   }
-
-  // 将牌堆分为两行
-  const countries = Object.entries(heroDecks);
-  const firstRow = countries.slice(0, 4);
-  const secondRow = countries.slice(4);
 
   return (
     <Container>
       <div style={{ width: '100%' }}>
         <DeckTitle>英杰牌堆</DeckTitle>
         <DeckRow>
-          {firstRow.map(([country, deck]) => {
-            if (!deck || typeof deck !== 'object' || !('cards' in deck) || !('count' in deck)) {
-              return null;
-            }
-            return (
-              <DeckContainer
-                key={country}
-                country={country}
-                onClick={() => handleDeckClick(country)}
-              >
-                <CountryName>{country}</CountryName>
-                <CardCount>{deck.count}</CardCount>
-              </DeckContainer>
-            );
-          })}
-        </DeckRow>
-        <DeckRow>
-          {secondRow.map(([country, deck]) => {
+          {Object.entries(heroDecks).map(([country, deck]) => {
             if (!deck || typeof deck !== 'object' || !('cards' in deck) || !('count' in deck)) {
               return null;
             }

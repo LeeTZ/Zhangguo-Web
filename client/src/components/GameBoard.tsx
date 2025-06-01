@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Card } from 'antd';
+import { Card, Button } from 'antd';
 import styled from '@emotion/styled';
 import { GameState } from '../types/props';
 import { TianshiArea } from './TianshiArea';
@@ -10,29 +10,30 @@ import HandCardList from 'components/HandCardList';
 import { JingnangMarket } from './JingnangMarket';
 import { HeroDeckArea } from './HeroDeckArea';
 import { GameLog } from './GameLog';
+import { gameActions } from '../socket';
 
 // 自定义紧凑型 Card 样式
 const CompactCard = styled(Card)`
   .ant-card-body {
-    padding: 8px;
+    padding: 4px;
   }
   .ant-card-head {
-    padding: 0 8px;
-    min-height: 36px;
+    padding: 0 4px;
+    min-height: 24px;
   }
   .ant-card-head-title {
-    padding: 8px 0;
+    padding: 4px 0;
   }
 `;
 
 // 样式组件定义
 const BoardContainer = styled.div`
   display: grid;
-  grid-template-columns: 520px 1fr 300px;
-  gap: 24px;
-  padding: 32px;
+  grid-template-columns: 400px minmax(0, 1fr) 300px;
+  gap: 16px;
+  padding: 16px;
   height: 100vh;
-  max-width: 2800px;
+  max-width: 1750px;
   margin: 0 auto;
   width: 100%;
 `;
@@ -41,10 +42,10 @@ const PlayerArea = styled.div`
   grid-column: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   max-height: 100vh;
   overflow-y: auto;
-  padding-right: 6px;
+  padding-right: 4px;
 
   /* 自定义滚动条样式 */
   &::-webkit-scrollbar {
@@ -61,10 +62,10 @@ const PlayerArea = styled.div`
 `;
 
 const PlayerSection = styled.div`
-  margin-bottom: 16px;
+  margin-bottom: 4px;
   
   .ant-card {
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
 `;
 
@@ -76,6 +77,54 @@ const LogArea = styled.div`
   grid-column: 3;
   height: 100vh;
   overflow: hidden;
+`;
+
+const ActionArea = styled.div`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid #e8e8e8;
+  padding: 32px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+`;
+
+const ActionContent = styled.div`
+  max-width: 1750px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+`;
+
+const ActionInfo = styled.div`
+  color: #666;
+  text-align: center;
+  
+  h3 {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  
+  p {
+    font-size: 16px;
+    margin: 0;
+  }
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  
+  .ant-btn {
+    height: 44px;
+    padding: 0 32px;
+    font-size: 16px;
+  }
 `;
 
 const PlayerInfoSection = styled.div`
@@ -129,6 +178,7 @@ interface Player {
   isBot?: boolean;
   selectedCountry?: string;
   country?: string;
+  tempHeroCards?: any[];
 }
 
 interface GameBoardProps {
@@ -136,6 +186,7 @@ interface GameBoardProps {
   onSelectCountry?: (countryId: string) => void;
   onSelectInitialHeroCards?: (cardIds: string[]) => void;
   onBuyCard?: (cardId: string | number) => void;
+  onDrawTianshiCard?: () => void;
 }
 
 const renderHandCards = (cards: CardType[], type: string) => {
@@ -151,7 +202,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   gameState,
   onSelectCountry,
   onSelectInitialHeroCards,
-  onBuyCard
+  onBuyCard,
+  onDrawTianshiCard
 }) => {
   const [gameLogs, setGameLogs] = useState<GameLog[]>([
     {
@@ -254,8 +306,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     const neutralDeck = gameState.decks.heroNeutral;
     if (neutralDeck && typeof neutralDeck === 'object' && 'cards' in neutralDeck && 'count' in neutralDeck) {
       decks['无'] = {
-        cards: (neutralDeck as { cards: HeroCard[] }).cards || [],
-        count: (neutralDeck as { count: number }).count || 0
+        cards: (neutralDeck as { cards: HeroCard[]; count: number }).cards || [],
+        count: (neutralDeck as { cards: HeroCard[]; count: number }).count || 0
       };
     } else {
       decks['无'] = {
@@ -360,81 +412,173 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setPreviousPhase(gameState.phase);
   }, [gameState.phase, gameState.players]);
 
+  // 获取当前玩家可执行的操作
+  const getCurrentPlayerActions = () => {
+    const currentPlayer = gameState.currentPlayer;
+    if (!currentPlayer) return null;
+
+    switch (gameState.phase) {
+      case 'initial_hero_selection':
+        return {
+          title: '初始英杰选择',
+          description: '请选择2张英杰牌',
+          actions: (currentPlayer as any)?.tempHeroCards ? [
+            {
+              key: 'select_heroes',
+              text: '选择英杰牌',
+              onClick: () => {
+                // 处理选择英杰牌的逻辑
+              }
+            }
+          ] : []
+        };
+      case 'playing':
+        // 检查是否是盟主
+        const isHost = currentPlayer.isHost;
+        const actions = [];
+        
+        // 如果是盟主且没有激活的天时牌，显示翻开天时牌按钮
+        if (isHost && !gameState.activeTianshiCard) {
+          actions.push({
+            key: 'draw_tianshi',
+            text: '翻开天时牌',
+            onClick: () => {
+              gameActions.drawTianshiCard();
+              // 添加翻开天时牌的日志
+              setGameLogs(prevLogs => [
+                ...prevLogs,
+                {
+                  id: `draw_tianshi_${Date.now()}`,
+                  timestamp: Date.now(),
+                  type: 'info',
+                  message: `盟主 ${currentPlayer.name || '未知玩家'} 翻开了天时牌`
+                }
+              ]);
+            }
+          });
+        }
+
+        // 添加结束回合按钮
+        actions.push({
+          key: 'end_turn',
+          text: '结束回合',
+          onClick: () => {
+            // 处理结束回合的逻辑
+          }
+        });
+
+        return {
+          title: isHost ? '盟主回合' : '游戏进行中',
+          description: isHost && !gameState.activeTianshiCard ? '请翻开天时牌' : '请选择要执行的操作',
+          actions
+        };
+      default:
+        return {
+          title: '等待中',
+          description: '等待其他玩家操作',
+          actions: []
+        };
+    }
+  };
+
+  const currentActions = getCurrentPlayerActions();
+
   return (
-    <BoardContainer>
-      <PlayerArea>
-        {formattedPlayers.map((player) => (
-          <PlayerSection key={player.id}>            
-            <CompactCard>
-              <PlayerInfo
-                name={player.name}
-                handSize={player.handSize}
-                renheCardCount={player.renheCardCount}
-                shishiCardCount={player.shishiCardCount}
-                shenqiCardCount={player.shenqiCardCount}
-                geoTokens={player.geoTokens}
-                tributeTokens={player.tributeTokens}
-                heroCards={player.heroCards}
-                isCurrentPlayer={player.id === currentPlayerId}
-                score={player.score}
-                isHost={player.isHost}
-              />
-              <HandCardList
-                renheCards={player.hand.renhe
-                  .filter((card): card is RenheCard => card.type === 'renhe')
-                  .map(card => ({
-                    ...card,
-                    id: String(card.id)
-                  }))}
-                shishiCards={player.hand.shishi
-                  .filter((card): card is ShishiCard => card.type === 'shishi')
-                  .map(card => ({
-                    ...card,
-                    id: String(card.id)
-                  }))}
-                shenqiCards={player.hand.shenqi
-                  .filter((card): card is ShenqiCard => card.type === 'shenqi')
-                  .map(card => ({
-                    ...card,
-                    id: String(card.id)
-                  }))}
-                selectedCardIds={[]}
-                onCardClick={(cardId) => handleCardClick(player.name, cardId)}
-              />
-            </CompactCard>
-          </PlayerSection>
-        ))}
-      </PlayerArea>
+    <>
+      <BoardContainer>
+        <PlayerArea>
+          {formattedPlayers.map((player) => (
+            <PlayerSection key={player.id}>            
+              <CompactCard>
+                <PlayerInfo
+                  name={player.name}
+                  handSize={player.handSize}
+                  renheCardCount={player.renheCardCount}
+                  shishiCardCount={player.shishiCardCount}
+                  shenqiCardCount={player.shenqiCardCount}
+                  geoTokens={player.geoTokens}
+                  tributeTokens={player.tributeTokens}
+                  heroCards={player.heroCards}
+                  isCurrentPlayer={player.id === currentPlayerId}
+                  score={player.score}
+                  isHost={player.isHost}
+                />
+                <HandCardList
+                  renheCards={player.hand.renhe
+                    .filter((card): card is RenheCard => card.type === 'renhe')
+                    .map(card => ({
+                      ...card,
+                      id: String(card.id)
+                    }))}
+                  shishiCards={player.hand.shishi
+                    .filter((card): card is ShishiCard => card.type === 'shishi')
+                    .map(card => ({
+                      ...card,
+                      id: String(card.id)
+                    }))}
+                  shenqiCards={player.hand.shenqi
+                    .filter((card): card is ShenqiCard => card.type === 'shenqi')
+                    .map(card => ({
+                      ...card,
+                      id: String(card.id)
+                    }))}
+                  selectedCardIds={[]}
+                  onCardClick={(cardId) => handleCardClick(player.name, cardId)}
+                />
+              </CompactCard>
+            </PlayerSection>
+          ))}
+        </PlayerArea>
 
-      <MainArea>
-        <Card>
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-            <div style={{ flex: 1.5 }}>
-              <TianshiArea 
-                activeTianshiCard={gameState.activeTianshiCard}
-                tianshiDeckCount={formatDeckCount(gameState.decks.tianshi)}
-                tianshiDeck={gameState.tianshiDeck}
-              />
+        <MainArea>
+          <Card>
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ flex: 1.5 }}>
+                <TianshiArea 
+                  activeTianshiCard={gameState.activeTianshiCard}
+                  tianshiDeckCount={formatDeckCount(gameState.decks.tianshi)}
+                  tianshiDeck={gameState.tianshiDeck}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <HeroDeckArea
+                  heroDecks={formattedHeroDecks}
+                />
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <HeroDeckArea
-                heroDecks={formattedHeroDecks}
-              />
-            </div>
-          </div>
-          <JingnangMarket
-            marketCards={gameState.jingnangMarket}
-            onBuyCard={onBuyCard}
-          />
-          <CountriesArea countries={gameState.countries} />
-          
-          <div>回合: {gameState.round}</div>
-        </Card>
-      </MainArea>
+            <JingnangMarket
+              marketCards={gameState.jingnangMarket}
+              onBuyCard={onBuyCard}
+            />
+            <CountriesArea countries={gameState.countries} />
+            
+            <div>回合: {gameState.round}</div>
+          </Card>
+        </MainArea>
 
-      <LogArea>
-        <GameLog logs={gameLogs} />
-      </LogArea>
-    </BoardContainer>
+        <LogArea>
+          <GameLog logs={gameLogs} />
+        </LogArea>
+      </BoardContainer>
+      <ActionArea>
+        <ActionContent>
+          <ActionInfo>
+            <h3>{currentActions?.title}</h3>
+            <p>{currentActions?.description}</p>
+          </ActionInfo>
+          <ActionButtons>
+            {currentActions?.actions.map(action => (
+              <Button
+                key={action.key}
+                type="primary"
+                onClick={action.onClick}
+              >
+                {action.text}
+              </Button>
+            ))}
+          </ActionButtons>
+        </ActionContent>
+      </ActionArea>
+    </>
   );
 }; 

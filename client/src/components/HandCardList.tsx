@@ -25,7 +25,7 @@ interface HandCardListProps {
 }
 
 const Container = styled.div`
-  margin: 8px 0;
+  margin: 0;
 `;
 
 const Title = styled.div`
@@ -37,43 +37,59 @@ const Title = styled.div`
 
 const CardList = styled.div`
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  gap: 4px;
-  padding: 4px;
-  min-height: 80px;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  min-height: 35px;
   background: rgba(0, 0, 0, 0.02);
-  border-radius: 4px;
-  margin: 4px 0;
+  border-radius: 2px;
+  margin: 0;
   
   /* 自定义滚动条样式 */
   &::-webkit-scrollbar {
-    height: 4px;
+    height: 2px;
   }
 
   &::-webkit-scrollbar-track {
     background: #f0f0f0;
-    border-radius: 2px;
+    border-radius: 1px;
   }
 
   &::-webkit-scrollbar-thumb {
     background: #d9d9d9;
-    border-radius: 2px;
+    border-radius: 1px;
     
     &:hover {
       background: #bfbfbf;
+    }
+  }
+
+  /* 修改卡牌样式 */
+  > div {
+    height: 50%;
+    > div {
+      height: 50%;
+      > div {
+        height: 50%;
+      }
     }
   }
 `;
 
 const EmptyText = styled.div`
   width: 100%;
-  height: 50px;
+  height: 35px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #999;
   font-size: 12px;
+`;
+
+const CardWrapper = styled.div`
+  height: 50%;
+  display: flex;
+  align-items: center;
 `;
 
 const HandCardList: React.FC<HandCardListProps> = ({
@@ -88,7 +104,6 @@ const HandCardList: React.FC<HandCardListProps> = ({
   if (!hasCards) {
     return (
       <Container>
-        <Title>手牌</Title>
         <CardList>
           <EmptyText>暂无手牌</EmptyText>
         </CardList>
@@ -98,7 +113,6 @@ const HandCardList: React.FC<HandCardListProps> = ({
 
   return (
     <Container>
-      <Title>手牌</Title>
       <CardList>
         {renheCards?.map((card) => (
           <RenheCard

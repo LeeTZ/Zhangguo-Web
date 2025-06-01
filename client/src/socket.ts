@@ -105,6 +105,23 @@ class SessionManager {
 
     // 登录成功事件监听
     this.socket.on('login_success', this.handleLoginSuccess);
+
+    // 天时牌翻开事件监听
+    this.socket.on('tianshi_card_drawn', (data) => {
+      console.log('Tianshi card drawn:', data);
+      // 更新游戏状态
+      const currentState = store.getState().game;
+      store.dispatch(updateGameState({
+        ...currentState,
+        activeTianshiCard: {
+          id: data.card.id,
+          name: data.card.name,
+          type: 'tianshi',
+          description: data.card.description,
+          effect: data.card.effect
+        }
+      }));
+    });
   }
 
   private handleLoginSuccess = (response: any) => {
@@ -217,6 +234,9 @@ export const gameActions = {
   },
   selectHeroCards: (cardIds: string[]) => {
     socket.emit('select_hero_cards', { cardIds });
+  },
+  drawTianshiCard: () => {
+    socket.emit('DRAW_TIANSHI_CARD');
   }
 };
 

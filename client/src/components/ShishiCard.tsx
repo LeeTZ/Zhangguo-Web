@@ -10,11 +10,11 @@ interface ShishiCardProps {
 }
 
 const CardContainer = styled.div<{ isSelected: boolean }>`
-  width: 50px;
-  height: 70px;
+  min-width: 50px;
+  height: 35px;
   border: 1px solid ${props => props.isSelected ? '#1890ff' : '#d9d9d9'};
   border-radius: 4px;
-  padding: 4px;
+  padding: 2px 4px;
   background: ${props => props.isSelected ? '#e6f7ff' : '#f6ffed'};
   cursor: pointer;
   transition: all 0.3s;
@@ -32,13 +32,10 @@ const CardName = styled.div`
   font-size: 10px;
   font-weight: bold;
   text-align: center;
-  word-break: break-all;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
-  max-height: 100%;
-  padding: 2px;
+  text-overflow: ellipsis;
+  padding: 1px;
 `;
 
 const ShishiCard: React.FC<ShishiCardProps> = ({ card, isSelected, onClick }) => {
