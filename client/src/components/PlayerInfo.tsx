@@ -82,23 +82,34 @@ const HeroCardList = styled.div`
   flex: 1;
 `;
 
-const HeroCardTag = styled.div<{ country?: string }>`
-  padding: 2px 6px;
+const HeroCardTag = styled.span<{ country: string }>`
+  display: inline-block;
+  padding: 2px 8px;
   border-radius: 4px;
   font-size: 12px;
+  margin-right: 4px;
+  margin-bottom: 4px;
   background: ${props => {
     switch (props.country) {
-      case '齐': return '#ff7875';
-      case '楚': return '#ffc069';
-      case '燕': return '#95de64';
-      case '韩': return '#69c0ff';
-      case '赵': return '#b37feb';
-      case '魏': return '#ff85c0';
-      case '秦': return '#40a9ff';
-      default: return '#8c8c8c';
+      case '齐': return 'linear-gradient(145deg, #ffccc7, #fff1f0)';
+      case '楚': return 'linear-gradient(145deg, #ffe58f, #fffbe6)';
+      case '燕': return 'linear-gradient(145deg, #d9f7be, #f6ffed)';
+      case '韩': return 'linear-gradient(145deg, #bae7ff, #e6f7ff)';
+      case '赵': return 'linear-gradient(145deg, #efdbff, #f9f0ff)';
+      case '魏': return 'linear-gradient(145deg, #ffd6e7, #fff0f6)';
+      case '秦': return 'linear-gradient(145deg, #b5f5ec, #e6fffb)';
+      case '无': return 'linear-gradient(145deg, #d9d9d9, #f5f5f5)';
+      default: return 'linear-gradient(145deg, #d9d9d9, #f5f5f5)';
     }
   }};
-  color: white;
+  color: #434343;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
+  }
 `;
 
 const HeroDetailCard = styled.div`

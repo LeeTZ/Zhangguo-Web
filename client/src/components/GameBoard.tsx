@@ -8,6 +8,7 @@ import { PlayerInfo } from './PlayerInfo';
 import { HeroCard, RenheCard, ShishiCard, ShenqiCard, CardType } from 'types/cards';
 import HandCardList from 'components/HandCardList';
 import { JingnangMarket } from './JingnangMarket';
+import { HeroDeckArea } from './HeroDeckArea';
 
 // 自定义紧凑型 Card 样式
 const CompactCard = styled(Card)`
@@ -166,6 +167,69 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   const formattedPlayers = formatPlayers(gameState.players);
 
+  // 格式化英杰牌堆数据
+  const formatHeroDecks = () => {
+    console.log('原始hero数据:', gameState.decks.hero);
+    
+    const decks: { [country: string]: { cards: HeroCard[]; count: number } } = {};
+    const countries = ['齐', '楚', '燕', '韩', '赵', '魏', '秦'];
+    
+    // 检查gameState.decks.hero的类型
+    if (gameState.decks.hero && typeof gameState.decks.hero === 'object') {
+      // 如果已经是正确的格式，直接返回
+      if ('cards' in gameState.decks.hero) {
+        console.log('使用新格式数据');
+        return gameState.decks.hero;
+      }
+      
+      // 如果是旧格式，转换为新格式
+      console.log('转换为新格式');
+      countries.forEach(country => {
+        const deck = (gameState.decks.hero as any)[country];
+        if (deck && typeof deck === 'object' && 'cards' in deck && 'count' in deck) {
+          decks[country] = {
+            cards: deck.cards || [],
+            count: typeof deck.count === 'number' ? deck.count : 0
+          };
+        } else {
+          decks[country] = {
+            cards: [],
+            count: typeof deck === 'number' ? deck : 0
+          };
+        }
+      });
+    } else {
+      console.log('使用默认格式');
+      // 使用默认格式
+      countries.forEach(country => {
+        decks[country] = {
+          cards: [],
+          count: 0
+        };
+      });
+    }
+
+    // 添加无所属国家的英杰牌堆
+    const neutralDeck = gameState.decks.heroNeutral;
+    if (neutralDeck && typeof neutralDeck === 'object' && 'cards' in neutralDeck && 'count' in neutralDeck) {
+      decks['无'] = {
+        cards: (neutralDeck as { cards: HeroCard[] }).cards || [],
+        count: (neutralDeck as { count: number }).count || 0
+      };
+    } else {
+      decks['无'] = {
+        cards: [],
+        count: typeof neutralDeck === 'number' ? neutralDeck : 0
+      };
+    }
+    
+    console.log('格式化后的数据:', decks);
+    return decks;
+  };
+
+  const formattedHeroDecks = formatHeroDecks();
+  console.log('传递给HeroDeckArea的数据:', formattedHeroDecks);
+
   return (
     <BoardContainer>
       <PlayerArea>
@@ -214,7 +278,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       </PlayerArea>
 
       <MainArea>
-        <Card title="游戏区域">
+        <Card>
           <TianshiArea 
             activeTianshiCard={gameState.activeTianshiCard}
             tianshiDeckCount={formatDeckCount(gameState.decks.tianshi)}
@@ -223,6 +287,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           <JingnangMarket
             marketCards={gameState.jingnangMarket}
             onBuyCard={onBuyCard}
+          />
+          <HeroDeckArea
+            heroDecks={formattedHeroDecks}
           />
           <CountriesArea countries={gameState.countries} />
           

@@ -667,6 +667,50 @@ class GameCore {
       yuanmou: formatDeckCount(this.decks.yuanmou)
     };
 
+    // 获取完整的英杰牌数据
+    const getHeroDeckData = () => {
+      const heroDecks = {};
+      
+      // 添加各国英杰牌堆
+      COUNTRY_LIST.forEach(country => {
+        const deck = this.decks.hero[country];
+        if (deck) {
+          heroDecks[country] = {
+            cards: deck.cards.map(card => ({
+              id: card.id,
+              name: card.name,
+              country: card.country,
+              birthDeath: card.birthDeath,
+              score: card.score,
+              goal: card.goal,
+              quote: card.quote,
+              type: 'hero'
+            })),
+            count: deck.size()
+          };
+        }
+      });
+
+      // 添加无所属英杰牌堆
+      if (this.decks.heroNeutral) {
+        heroDecks['无'] = {
+          cards: this.decks.heroNeutral.cards.map(card => ({
+            id: card.id,
+            name: card.name,
+            country: card.country,
+            birthDeath: card.birthDeath,
+            score: card.score,
+            goal: card.goal,
+            quote: card.quote,
+            type: 'hero'
+          })),
+          count: this.decks.heroNeutral.size()
+        };
+      }
+
+      return heroDecks;
+    };
+
     return {
       phase: this.phase,
       round: this.round,
@@ -686,7 +730,10 @@ class GameCore {
         }
       })),
       countries: this.countries,
-      decks: deckCounts,
+      decks: {
+        ...deckCounts,
+        hero: getHeroDeckData() // 使用完整的英杰牌数据替换原来的数量
+      },
       market: this.market,
       activeTianshiCard: this.activeTianshiCard,
       tianshiDeck: this.decks.tianshi.cards,

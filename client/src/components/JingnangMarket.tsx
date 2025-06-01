@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { ShishiCard } from '../types/cards';
+import { Tooltip } from 'antd';
 
 interface JingnangMarketProps {
   marketCards: ShishiCard[];
@@ -60,7 +61,17 @@ const CardName = styled.div`
   color: #595959;
   font-weight: 500;
   text-align: center;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+`;
+
+const CardCountries = styled.div`
+  font-size: 10px;
+  color: #8c8c8c;
+  text-align: center;
+  margin-bottom: 4px;
+  padding: 1px 4px;
+  background: #f5f5f5;
+  border-radius: 2px;
 `;
 
 const CardDescription = styled.div`
@@ -68,6 +79,19 @@ const CardDescription = styled.div`
   color: #8c8c8c;
   text-align: center;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 39px; // 3行文字的高度
+`;
+
+const TooltipContent = styled.div`
+  max-width: 300px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #ffffff;
 `;
 
 export const JingnangMarket: React.FC<JingnangMarketProps> = ({
@@ -80,13 +104,34 @@ export const JingnangMarket: React.FC<JingnangMarketProps> = ({
         <MarketTitle>锦囊市场</MarketTitle>
         <CardsContainer>
           {marketCards.map((card) => (
-            <CardContainer
+            <Tooltip
               key={card.id}
-              onClick={() => onBuyCard?.(card.id)}
+              title={
+                <TooltipContent>
+                  <div style={{ marginBottom: '8px', fontWeight: 500, color: '#ffffff' }}>{card.name}</div>
+                  {card.countries && card.countries.length > 0 && (
+                    <div style={{ marginBottom: '8px', color: '#ffffff' }}>
+                      相关国家：{card.countries.join('、')}
+                    </div>
+                  )}
+                  <div style={{ color: '#ffffff' }}>{card.description}</div>
+                  {card.story && (
+                    <div style={{ marginTop: '8px', color: '#ffffff', fontStyle: 'italic' }}>
+                      {card.story}
+                    </div>
+                  )}
+                </TooltipContent>
+              }
+              placement="top"
             >
-              <CardName>{card.name}</CardName>
-              <CardDescription>{card.description}</CardDescription>
-            </CardContainer>
+              <CardContainer onClick={() => onBuyCard?.(card.id)}>
+                <CardName>{card.name}</CardName>
+                {card.countries && card.countries.length > 0 && (
+                  <CardCountries>{card.countries.join('、')}</CardCountries>
+                )}
+                <CardDescription>{card.description}</CardDescription>
+              </CardContainer>
+            </Tooltip>
           ))}
         </CardsContainer>
       </div>
