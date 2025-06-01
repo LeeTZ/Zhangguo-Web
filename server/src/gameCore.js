@@ -252,7 +252,7 @@ class GameCore {
         shishi: [],
         shenqi: []
       },
-      geoTokens: 3,
+      geoTokens: GAME_CONSTANTS.INITIAL_GEO_TOKENS,
       tributeTokens: 0,
       isHost: false,
       isReady: false
@@ -365,14 +365,6 @@ class GameCore {
       this.decks.shenqi.shuffle();
       console.log('[游戏核心] 神机牌堆初始化完成，包含', this.decks.shenqi.size(), '张牌');
 
-      // 抽取第一张天时牌
-      if (this.decks.tianshi && !this.decks.tianshi.isEmpty()) {
-        this.activeTianshiCard = this.drawAndActivateTianshiCard();
-        console.log('[游戏核心] 抽取首张天时牌:', this.activeTianshiCard);
-      } else {
-        console.warn('[游戏核心] 警告: 无法抽取天时牌，牌堆为空');
-      }
-
       console.log('[游戏核心] 所有牌堆初始化完成');
     } catch (error) {
       console.error('[游戏核心] 初始化牌堆时发生错误:', error);
@@ -401,6 +393,14 @@ class GameCore {
     const firstRealPlayer = this.players.find(player => !player.isBot);
     if (firstRealPlayer) {
       this.setHost(firstRealPlayer.id);
+      
+      // 给其他玩家发放地利标记
+      this.players.forEach(player => {
+        if (player.id !== firstRealPlayer.id) {
+          player.geoTokens += 1;
+          console.log(`[游戏] 玩家 ${player.name} 获得1个地利标记`);
+        }
+      });
     }
   }
 

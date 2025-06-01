@@ -324,9 +324,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         message: `玩家 ${hostPlayer.username} 成为了盟主`
       } : null;
 
+      // 添加地利标记发放的日志
+      const geoTokensLogs: GameLog[] = gameState.players
+        .filter(player => !player.isHost)
+        .map(player => ({
+          id: `geotoken_${player.id}_${Date.now()}`,
+          timestamp: Date.now(),
+          type: 'success' as const,
+          message: `玩家 ${player.username} 获得1个地利标记`
+        }));
+
       // 一次性更新所有日志
       setGameLogs(prevLogs => {
-        const newLogs = [...prevLogs, ...countrySelectionLogs, roundStartLog];
+        const newLogs = [...prevLogs, ...countrySelectionLogs, roundStartLog, ...geoTokensLogs];
         if (hostLog) {
           newLogs.push(hostLog);
         }
