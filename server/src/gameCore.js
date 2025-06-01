@@ -271,7 +271,7 @@ class GameCore {
     };
     this.market = [];
     this.activeTianshiCard = null;
-    this.phase = 'country_selection';
+    this.phase = 'initial_hero_selection';
     this.round = 1;
     this.currentPlayerIndex = 0;
     this.selectedCountries = new Set();
@@ -308,7 +308,10 @@ class GameCore {
     this.initializeDecks();
     this.initializeJingnangMarket(); // 初始化锦囊市场
 
-    // 4. 将各牌堆放置在地图对应位置
+    // 4. 随机分配国家给所有玩家
+    this.assignCountriesToPlayers();
+
+    // 5. 将各牌堆放置在地图对应位置
     this.deckLocations = {
       heroNeutral: 'center', // 无所属英杰牌放在中央
       hero: {} // 各国英杰牌放在对应国家位置
@@ -587,22 +590,113 @@ class GameCore {
     });
   }
 
-  // 抽取一张天时牌并使其生效
+  // 翻开并激活天时牌
   drawAndActivateTianshiCard() {
-    if (!this.decks.tianshi.isEmpty()) {
-      console.log('Drawing tianshi card from deck:', this.decks.tianshi.cards);
-      
-      // 如果有当前生效的天时牌，将其放入弃牌堆（这里简化处理，直接移除）
-      this.activeTianshiCard = null;
-      
-      // 抽取新的天时牌
-      const [newCard] = this.decks.tianshi.draw();
-      console.log('Drew tianshi card:', newCard);
-      this.activeTianshiCard = newCard;
-
-      return newCard;
+    if (this.decks.tianshi.isEmpty()) {
+      // 如果天时牌堆为空，将弃牌堆洗回
+      this.decks.tianshi = new Deck([...this.decks.tianshiDiscardPile]);
+      this.decks.tianshiDiscardPile = [];
     }
-    return null;
+
+    if (this.decks.tianshi.isEmpty()) {
+      return null;
+    }
+
+    const card = this.decks.tianshi.cards.pop();
+    this.activeTianshiCard = card;
+    return card;
+  }
+
+  // 结算天时牌效果
+  resolveTianshiCard(card) {
+    if (!card) return;
+
+    // 获取天时牌效果
+    const effect = this.getTianshiCardEffect(card);
+    
+    // 对每个国家应用效果
+    Object.entries(this.countries).forEach(([countryId, country]) => {
+      // 如果国家属性为1，不降低
+      if (country[effect.attribute] > 1) {
+        country[effect.attribute] = Math.max(1, country[effect.attribute] + effect.value);
+      }
+    });
+
+    // 将天时牌移至弃牌堆
+    this.decks.tianshiDiscardPile.push(card);
+    this.activeTianshiCard = null;
+  }
+
+  // 获取天时牌效果
+  getTianshiCardEffect(card) {
+    // 根据卡牌ID获取效果
+    const effects = {
+      'tianshi_1': { attribute: 'military', value: -1 },
+      'tianshi_2': { attribute: 'politics', value: -1 },
+      'tianshi_3': { attribute: 'economy', value: -1 },
+      // ... 其他天时牌效果
+    };
+    return effects[card.id] || { attribute: 'military', value: 0 };
+  }
+
+  // 移动周天子标记
+  moveKingToken(countryId) {
+    // 检查目标国家是否存在且未灭亡
+    const targetCountry = this.countries[countryId];
+    if (!targetCountry || this.isCountryDestroyed(countryId)) {
+      return false;
+    }
+
+    // 移除当前周天子标记
+    Object.values(this.countries).forEach(country => {
+      country.hasKingToken = false;
+    });
+
+    // 放置周天子标记到目标国家
+    targetCountry.hasKingToken = true;
+    return true;
+  }
+
+  // 检查国家是否灭亡
+  isCountryDestroyed(countryId) {
+    const country = this.countries[countryId];
+    return country.military <= 0 && country.politics <= 0 && country.economy <= 0;
+  }
+
+  // 检查玩家英杰牌目标是否达成
+  checkHeroGoals() {
+    this.players.forEach(player => {
+      const playerCountry = this.countries[player.selectedCountry];
+      if (!playerCountry) return;
+
+      // 检查每个英杰牌的目标
+      player.heroes.forEach(hero => {
+        if (hero.isRevealed || !hero.goal) return;
+
+        const goal = hero.goal;
+        let isGoalAchieved = false;
+
+        switch (goal.type) {
+          case 'attribute':
+            // 检查国家属性是否达到目标值
+            isGoalAchieved = playerCountry[goal.attribute] >= goal.value;
+            break;
+          case 'king_token':
+            // 检查是否拥有周天子标记
+            isGoalAchieved = playerCountry.hasKingToken;
+            break;
+          case 'hero_count':
+            // 检查英杰牌数量
+            isGoalAchieved = player.heroes.filter(h => h.isRevealed).length >= goal.value;
+            break;
+        }
+
+        if (isGoalAchieved) {
+          // 目标达成，可以明置英杰牌
+          hero.canReveal = true;
+        }
+      });
+    });
   }
 
   // 获取当前玩家
@@ -808,6 +902,41 @@ class GameCore {
 
     // 设置第一回合的盟主
     this.startFirstRound();
+  }
+
+  // 随机分配国家给所有玩家
+  assignCountriesToPlayers() {
+    console.log('[游戏核心] 开始随机分配国家');
+    
+    // 获取可用的国家列表
+    const availableCountries = [...COUNTRY_LIST];
+    
+    // 洗牌算法
+    for (let i = availableCountries.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableCountries[i], availableCountries[j]] = [availableCountries[j], availableCountries[i]];
+    }
+    
+    // 为每个玩家分配国家
+    this.players.forEach((player, idx) => {
+      if (idx >= availableCountries.length) {
+        console.error(`[游戏核心] 错误: 玩家数量(${this.players.length})超过可用国家数量(${availableCountries.length})`);
+        return;
+      }
+      
+      const country = availableCountries[idx];
+      player.selectedCountry = country;
+      player.country = country;
+      this.selectedCountries.add(country);
+      
+      console.log(`[游戏核心] 玩家 ${player.name} 随机选择了国家 ${country}`);
+    });
+    
+    // 直接进入初始英杰选择阶段
+    console.log('[游戏核心] 国家分配完成，进入初始英杰选择阶段');
+    this.phase = 'initial_hero_selection';
+    this.dealInitialCards();
+    this.dealInitialHeroCards();
   }
 }
 

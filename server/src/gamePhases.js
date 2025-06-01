@@ -8,11 +8,10 @@ const GamePhase = {
 
 // 回合阶段定义
 const TurnPhase = {
+  ALLIANCE: 'alliance',        // 盟会阶段
   STRATEGY: 'strategy',        // 权谋阶段
   PLANNING: 'planning',        // 筹谋阶段
-  ACTION: 'action',           // 行动阶段
-  BATTLE: 'battle',           // 征伐阶段
-  TRIBUTE: 'tribute'          // 朝贡阶段
+  COMPETITION: 'competition'   // 争雄阶段
 };
 
 // 玩家行动类型
@@ -25,7 +24,11 @@ const ActionType = {
   REFORM: 'reform',          // 变法
   BATTLE: 'battle',          // 战争
   TRIBUTE: 'tribute',        // 朝贡
-  PASS: 'pass'               // 过牌
+  PASS: 'pass',              // 过牌
+  MOVE_KING: 'move_king',    // 移动周天子
+  DRAW_CARDS: 'draw_cards',  // 抽牌
+  GET_TOKENS: 'get_tokens',  // 获得标记
+  MARKET_ACTION: 'market_action' // 锦囊市场操作
 };
 
 // 游戏配置
@@ -41,8 +44,17 @@ const GameConfig = {
     COUNTRY: 4                 // 国家英杰（抽4选2-3）
   },
   CARD_LIMITS: {
-    HAND_SIZE: 8,             // 手牌上限
+    HAND_SIZE: 9,             // 手牌上限
     HERO_REVEAL: 3            // 每回合最多明置英杰数
+  },
+  PLANNING_PHASE: {
+    GEO_TOKENS: 4,            // 筹谋阶段获得的地利标记
+    RENHE_CARDS: 2,           // 筹谋阶段获得的人和牌
+    MARKET_SIZE: 7            // 锦囊市场大小
+  },
+  STRATEGY_PHASE: {
+    ROUNDS: 2,                // 权谋阶段出牌轮数
+    MAX_GEO_TOKENS: 5         // 权谋阶段最大地利标记数
   }
 };
 

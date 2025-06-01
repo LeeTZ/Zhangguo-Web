@@ -69,14 +69,8 @@ class GameManager {
 
   // 开始新回合
   startNewTurn() {
-    console.log(`Starting turn ${this.gameCore.turn}...`);
-    const currentPlayer = this.players[this.currentPlayerIndex];
-    this.currentTurnPhase = TurnPhase.START;
-    
-    // 重置玩家行动点数
-    currentPlayer.actionPoints = GameConfig.INITIAL_ACTION_POINTS;
-    
-    // 执行回合开始阶段
+    console.log(`Starting turn ${this.gameCore.round}...`);
+    this.currentTurnPhase = TurnPhase.ALLIANCE;
     this.processTurnPhase();
   }
 
@@ -85,66 +79,173 @@ class GameManager {
     const currentPlayer = this.players[this.currentPlayerIndex];
     
     switch (this.currentTurnPhase) {
-      case TurnPhase.START:
-        // 处理回合开始效果
-        this.currentTurnPhase = TurnPhase.DRAW;
-        this.processTurnPhase();
+      case TurnPhase.ALLIANCE:
+        // 盟会阶段
+        this.handleAlliancePhase();
         break;
         
-      case TurnPhase.DRAW:
-        // 抽牌阶段
-        this.gameCore.drawCards(currentPlayer.id, 'renhe', 2);
-        this.currentTurnPhase = TurnPhase.ACTION;
+      case TurnPhase.STRATEGY:
+        // 权谋阶段
+        this.handleStrategyPhase();
         break;
         
-      case TurnPhase.ACTION:
-        // 行动阶段 - 等待玩家操作
+      case TurnPhase.PLANNING:
+        // 筹谋阶段
+        this.handlePlanningPhase();
         break;
         
-      case TurnPhase.END:
-        // 回合结束，转到下一个玩家
-        this.endTurn();
+      case TurnPhase.COMPETITION:
+        // 争雄阶段
+        this.handleCompetitionPhase();
         break;
     }
     
     this.broadcastGameState();
   }
 
-  // 处理玩家行动
-  handleAction(playerId, action) {
-    if (this.currentPhase !== GamePhase.PLAYING ||
-        this.currentTurnPhase !== TurnPhase.ACTION ||
-        this.players[this.currentPlayerIndex].id !== playerId) {
+  // 处理盟会阶段
+  handleAlliancePhase() {
+    const hostPlayer = this.players.find(p => p.isHost);
+    if (!hostPlayer) return;
+
+    // 翻开天时牌并结算
+    const tianshiCard = this.gameCore.drawAndActivateTianshiCard();
+    if (tianshiCard) {
+      // 广播天时牌信息
+      this.broadcast('tianshi_card_drawn', {
+        card: tianshiCard,
+        playerId: hostPlayer.id
+      });
+
+      // 结算天时牌效果
+      this.gameCore.resolveTianshiCard(tianshiCard);
+      
+      // 检查玩家英杰牌目标是否达成
+      this.gameCore.checkHeroGoals();
+
+      // 广播更新后的游戏状态
+      this.broadcastGameState();
+    }
+
+    // 检查周天子标记
+    const kingTokenCountry = Object.entries(this.gameCore.countries)
+      .find(([_, country]) => country.hasKingToken)?.[0];
+    
+    if (kingTokenCountry) {
+      // 等待盟主移动周天子
+      this.waitForKingTokenMove(hostPlayer.id);
+    } else {
+      // 进入权谋阶段
+      this.currentTurnPhase = TurnPhase.STRATEGY;
+      this.processTurnPhase();
+    }
+  }
+
+  // 等待盟主移动周天子
+  waitForKingTokenMove(hostId) {
+    this.currentPlayerIndex = this.players.findIndex(p => p.id === hostId);
+    this.broadcast('waiting_for_king_token_move', {
+      playerId: hostId
+    });
+  }
+
+  // 处理周天子标记移动
+  handleKingTokenMove(playerId, targetCountry) {
+    if (playerId !== this.players.find(p => p.isHost)?.id) {
       return false;
     }
 
-    const player = this.players[this.currentPlayerIndex];
-    
-    switch (action.type) {
-      case ActionType.PLAY_CARD:
-        if (this.gameCore.playCard(playerId, action.cardId)) {
-          player.actionPoints--;
-        }
-        break;
-        
-      case ActionType.USE_ABILITY:
-        // TODO: 实现英杰能力使用逻辑
-        break;
-        
-      case ActionType.PASS:
-        this.currentTurnPhase = TurnPhase.END;
-        this.processTurnPhase();
-        break;
-    }
+    const success = this.gameCore.moveKingToken(targetCountry);
+    if (success) {
+      // 广播周天子标记移动
+      this.broadcast('king_token_moved', {
+        playerId,
+        targetCountry
+      });
 
-    // 检查行动点数是否用完
-    if (player.actionPoints <= 0) {
-      this.currentTurnPhase = TurnPhase.END;
+      // 进入权谋阶段
+      this.currentTurnPhase = TurnPhase.STRATEGY;
       this.processTurnPhase();
     }
 
-    this.broadcastGameState();
-    return true;
+    return success;
+  }
+
+  // 处理权谋阶段
+  handleStrategyPhase() {
+    const hostPlayer = this.players.find(p => p.isHost);
+    if (!hostPlayer) return;
+
+    // 等待盟主打出第一张牌
+    this.waitForHostCard(hostPlayer.id);
+  }
+
+  // 处理筹谋阶段
+  handlePlanningPhase() {
+    const hostPlayer = this.players.find(p => p.isHost);
+    if (!hostPlayer) return;
+
+    // 从盟主开始，按顺时针顺序执行操作
+    this.currentPlayerIndex = this.players.findIndex(p => p.id === hostPlayer.id);
+    this.waitForPlanningAction(this.players[this.currentPlayerIndex].id);
+  }
+
+  // 处理争雄阶段
+  handleCompetitionPhase() {
+    const hostPlayer = this.players.find(p => p.isHost);
+    if (!hostPlayer) return;
+
+    // 从盟主左手边的玩家开始
+    const hostIndex = this.players.findIndex(p => p.id === hostPlayer.id);
+    this.currentPlayerIndex = (hostIndex + 1) % this.players.length;
+    
+    // 等待玩家争雄
+    this.waitForCompetition(this.players[this.currentPlayerIndex].id);
+  }
+
+  // 处理玩家行动
+  handleAction(playerId, action) {
+    if (this.currentPhase !== GamePhase.PLAYING) {
+      return false;
+    }
+
+    const player = this.players.find(p => p.id === playerId);
+    if (!player) return false;
+
+    switch (this.currentTurnPhase) {
+      case TurnPhase.ALLIANCE:
+        if (action.type === ActionType.MOVE_KING) {
+          return this.handleKingTokenMove(playerId, action.targetCountry);
+        }
+        break;
+
+      case TurnPhase.STRATEGY:
+        if (action.type === ActionType.PLAY_CARD) {
+          return this.handleStrategyCardPlay(playerId, action);
+        }
+        break;
+
+      case TurnPhase.PLANNING:
+        switch (action.type) {
+          case ActionType.DRAW_CARDS:
+            return this.handlePlanningDrawCards(playerId);
+          case ActionType.GET_TOKENS:
+            return this.handlePlanningGetTokens(playerId);
+          case ActionType.MARKET_ACTION:
+            return this.handlePlanningMarketAction(playerId, action);
+          case ActionType.SEEK_TALENT:
+            return this.handlePlanningSeekTalent(playerId);
+        }
+        break;
+
+      case TurnPhase.COMPETITION:
+        if (action.type === ActionType.PLAY_CARD) {
+          return this.handleCompetitionAction(playerId, action);
+        }
+        break;
+    }
+
+    return false;
   }
 
   // 结束当前回合
@@ -154,15 +255,17 @@ class GameManager {
     
     // 如果回到第一个玩家，回合数+1
     if (this.currentPlayerIndex === 0) {
-      this.gameCore.turn++;
+      this.gameCore.round++;
+      
+      // 检查游戏是否结束
+      if (this.gameCore.round > GameConfig.MAX_ROUNDS) {
+        this.endGame();
+        return;
+      }
     }
     
-    // 检查游戏是否结束
-    if (this.gameCore.turn > GameConfig.MAX_ROUNDS) {
-      this.endGame();
-    } else {
-      this.startNewTurn();
-    }
+    // 开始新回合
+    this.startNewTurn();
   }
 
   // 结束游戏

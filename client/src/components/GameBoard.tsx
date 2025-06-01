@@ -303,7 +303,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             id: `country_${player.id}_${Date.now()}`,
             timestamp: Date.now(),
             type: 'success' as const,
-            message: `玩家 ${player.username} 选择了国家 ${country}`
+            message: `玩家 ${player.username} 随机选择了国家 ${country}`
           };
         });
 
