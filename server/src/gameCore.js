@@ -276,6 +276,7 @@ class GameCore {
     this.currentPlayerIndex = 0;
     this.selectedCountries = new Set();
     this.jingnangMarket = []; // 锦囊市场中的卡牌
+    this.currentHost = null; // 当前盟主
 
     // 初始化游戏
     this.initializeGame();
@@ -372,6 +373,31 @@ class GameCore {
       console.log('[游戏核心] 所有牌堆初始化完成');
     } catch (error) {
       console.error('[游戏核心] 初始化牌堆时发生错误:', error);
+    }
+  }
+
+  // 设置盟主
+  setHost(playerId) {
+    // 清除所有玩家的盟主状态
+    this.players.forEach(player => {
+      player.isHost = false;
+    });
+
+    // 设置新的盟主
+    const newHost = this.players.find(player => player.id === playerId);
+    if (newHost) {
+      newHost.isHost = true;
+      this.currentHost = playerId;
+      console.log(`[游戏] 玩家 ${newHost.name} 成为盟主`);
+    }
+  }
+
+  // 进入第一回合时设置盟主
+  startFirstRound() {
+    // 找到第一个真实玩家（非机器人）作为盟主
+    const firstRealPlayer = this.players.find(player => !player.isBot);
+    if (firstRealPlayer) {
+      this.setHost(firstRealPlayer.id);
     }
   }
 
@@ -740,7 +766,8 @@ class GameCore {
       initialCards: currentPlayer?.tempHeroCards,
       availableCountries: this.phase === 'country_selection' ? this.getAvailableCountries() : undefined,
       selectedCountries: Array.from(this.selectedCountries),
-      jingnangMarket: this.jingnangMarket
+      jingnangMarket: this.jingnangMarket,
+      currentHost: this.currentHost // 添加当前盟主信息
     };
   }
 
@@ -778,6 +805,9 @@ class GameCore {
         player.hand.shenqi = [];
       }
     });
+
+    // 设置第一回合的盟主
+    this.startFirstRound();
   }
 }
 

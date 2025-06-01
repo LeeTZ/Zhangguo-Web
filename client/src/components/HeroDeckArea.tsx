@@ -14,8 +14,9 @@ interface HeroDeckAreaProps {
 
 const Container = styled.div`
   display: flex;
-  gap: 16px;
-  padding: 16px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
   margin-bottom: 12px;
   background: linear-gradient(to right, rgba(255, 255, 255, 0.95), rgba(250, 250, 250, 0.95));
   border-radius: 8px;
@@ -23,29 +24,36 @@ const Container = styled.div`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 `;
 
+const DeckRow = styled.div`
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 4px;
+`;
+
 const DeckSection = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 `;
 
 const DeckTitle = styled.div`
-  font-size: 14px;
+  font-size: 12px;
   color: #595959;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   font-weight: 500;
 `;
 
 const DeckCount = styled.div`
-  font-size: 12px;
+  font-size: 11px;
   color: #8c8c8c;
   font-weight: 500;
 `;
 
 const DeckContainer = styled.div<{ country: string }>`
-  width: 80px;
-  height: 110px;
+  width: 50px;
+  height: 60px;
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 6px;
   display: flex;
@@ -77,14 +85,14 @@ const DeckContainer = styled.div<{ country: string }>`
 `;
 
 const CountryName = styled.div`
-  font-size: 16px;
+  font-size: 12px;
   font-weight: bold;
   color: #434343;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 `;
 
 const CardCount = styled.div`
-  font-size: 12px;
+  font-size: 10px;
   color: #8c8c8c;
 `;
 
@@ -258,12 +266,17 @@ export const HeroDeckArea: React.FC<HeroDeckAreaProps> = ({ heroDecks }) => {
     return null;
   }
 
+  // 将牌堆分为两行
+  const countries = Object.entries(heroDecks);
+  const firstRow = countries.slice(0, 4);
+  const secondRow = countries.slice(4);
+
   return (
     <Container>
-      <div style={{ flex: 1 }}>
+      <div style={{ width: '100%' }}>
         <DeckTitle>英杰牌堆</DeckTitle>
-        <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-          {heroDecks && Object.entries(heroDecks).map(([country, deck]) => {
+        <DeckRow>
+          {firstRow.map(([country, deck]) => {
             if (!deck || typeof deck !== 'object' || !('cards' in deck) || !('count' in deck)) {
               return null;
             }
@@ -278,7 +291,24 @@ export const HeroDeckArea: React.FC<HeroDeckAreaProps> = ({ heroDecks }) => {
               </DeckContainer>
             );
           })}
-        </div>
+        </DeckRow>
+        <DeckRow>
+          {secondRow.map(([country, deck]) => {
+            if (!deck || typeof deck !== 'object' || !('cards' in deck) || !('count' in deck)) {
+              return null;
+            }
+            return (
+              <DeckContainer
+                key={country}
+                country={country}
+                onClick={() => handleDeckClick(country)}
+              >
+                <CountryName>{country}</CountryName>
+                <CardCount>{deck.count}</CardCount>
+              </DeckContainer>
+            );
+          })}
+        </DeckRow>
       </div>
 
       {selectedCountry && (

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { Card, Badge, Tooltip, Modal, Button } from 'antd';
 import { HeroCard } from '../types/cards';
+import { CrownOutlined } from '@ant-design/icons';
 
 interface PlayerInfoProps {
   name: string;
@@ -14,6 +15,7 @@ interface PlayerInfoProps {
   heroCards: HeroCard[];
   isCurrentPlayer?: boolean;
   score?: number;
+  isHost?: boolean;
 }
 
 interface StyledCardProps {
@@ -105,7 +107,7 @@ const HeroCardTag = styled.span<{ country: string }>`
   color: #434343;
   border: 1px solid rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
-
+  
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
@@ -204,6 +206,18 @@ const RenheCardIcon = styled.span`
   color: white;
 `;
 
+const HostTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #fffbe6;
+  border: 1px solid #ffe58f;
+  color: #d48806;
+`;
+
 export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   name,
   handSize,
@@ -215,6 +229,7 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   heroCards,
   isCurrentPlayer = false,
   score = 0,
+  isHost
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const totalHandCards = renheCardCount + shishiCardCount + shenqiCardCount;
@@ -225,6 +240,12 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
         <InfoRow>
           <PlayerNameSection>
             {name}
+            {isHost && (
+              <HostTag>
+                <CrownOutlined />
+                盟主
+              </HostTag>
+            )}
             <InfoItem>
               <span>得分</span>
               <ScoreIcon>{score}</ScoreIcon>
