@@ -1,6 +1,6 @@
 const { GamePhase, TurnPhase, ActionType, GameConfig } = require('./gamePhases');
 const GameCore = require('./gameCore').GameCore;
-const BotPlayer = require('./botPlayer').BotPlayer;
+const { BotPlayer } = require('./ai/botPlayer');
 
 class GameManager {
   constructor(roomId, broadcast) {
@@ -23,6 +23,7 @@ class GameManager {
     
     this.players.push({
       id: player.id,
+      playerId: player.id,
       name: player.name,
       socketId: player.socketId,
       isHost: player.isHost
@@ -56,8 +57,13 @@ class GameManager {
       throw new Error('Cannot start game: not enough players');
     }
 
+    console.log('[游戏管理器] 开始游戏，当前玩家列表:', this.players);
+
     // 初始化游戏核心
-    this.gameCore = new GameCore(this.players);
+    this.gameCore = new GameCore(this.players.map(player => ({
+      ...player,
+      isBot: player.isBot || false  // 确保 isBot 属性被正确传递
+    })));
 
     // 设置游戏阶段为国家选择
     this.currentPhase = 'country_selection';
@@ -277,18 +283,66 @@ class GameManager {
       phase: this.currentPhase,
       turnPhase: this.currentTurnPhase,
       currentPlayerIndex: this.currentPlayerIndex,
-      players: this.players.map(p => ({
-        id: p.id,
-        name: p.name,
-        socketId: p.socketId,
-        isHost: p.isHost,
-        actionPoints: p.actionPoints,
-        geoTokens: p.geoTokens,
-        tributeTokens: p.tributeTokens,
-        handSize: this.gameCore.players.find(gp => gp.id === p.id)?.hand.length || 0,
-        isCurrentPlayer: this.currentPlayerIndex !== -1 && this.players[this.currentPlayerIndex].id === p.id,
-        selectedCountry: this.gameCore.players.find(gp => gp.id === p.id)?.selectedCountry
-      })),
+      players: this.players.map(p => {
+        // 获取游戏核心中的玩家数据
+        const corePlayer = this.gameCore.players.find(gp => gp.id === p.id);
+        console.log(`[游戏状态] 玩家 ${p.name} 的核心数据:`, corePlayer);
+        
+        // 如果是机器人玩家，返回完整的手牌信息
+        if (corePlayer?.isBot || p.isBot || p.name?.startsWith('Bot') || p.username?.startsWith('Bot')) {
+          return {
+            id: p.id,
+            name: p.name,
+            username: p.name,
+            socketId: p.socketId,
+            isHost: p.isHost,
+            isBot: true, // 确保设置 isBot 为 true
+            actionPoints: p.actionPoints,
+            geoTokens: corePlayer?.geoTokens || p.geoTokens || 0,
+            tributeTokens: corePlayer?.tributeTokens || p.tributeTokens || 0,
+            hand: corePlayer?.hand || {
+              hero: [],
+              heroNeutral: [],
+              renhe: [],
+              shishi: [],
+              shenqi: []
+            },
+            handSize: corePlayer?.getTotalHandCards?.() || 0,
+            isCurrentPlayer: this.currentPlayerIndex !== -1 && this.players[this.currentPlayerIndex].id === p.id,
+            selectedCountry: corePlayer?.selectedCountry || p.selectedCountry
+          };
+        }
+        
+        // 如果是人类玩家，根据是否是当前玩家返回完整或简化的手牌信息
+        return {
+          id: p.id,
+          name: p.name,
+          username: p.name,
+          socketId: p.socketId,
+          isHost: p.isHost,
+          isBot: false, // 确保设置 isBot 为 false
+          actionPoints: p.actionPoints,
+          geoTokens: corePlayer?.geoTokens || p.geoTokens || 0,
+          tributeTokens: corePlayer?.tributeTokens || p.tributeTokens || 0,
+          hand: this.currentPlayerIndex !== -1 && this.players[this.currentPlayerIndex].id === p.id ? 
+            (corePlayer?.hand || {
+              hero: [],
+              heroNeutral: [],
+              renhe: [],
+              shishi: [],
+              shenqi: []
+            }) : {
+              hero: corePlayer?.hand?.hero?.length || 0,
+              heroNeutral: corePlayer?.hand?.heroNeutral?.length || 0,
+              renhe: corePlayer?.hand?.renhe?.length || 0,
+              shishi: corePlayer?.hand?.shishi?.length || 0,
+              shenqi: corePlayer?.hand?.shenqi?.length || 0
+            },
+          handSize: corePlayer?.getTotalHandCards?.() || 0,
+          isCurrentPlayer: this.currentPlayerIndex !== -1 && this.players[this.currentPlayerIndex].id === p.id,
+          selectedCountry: corePlayer?.selectedCountry || p.selectedCountry
+        };
+      }),
       countries: this.gameCore.countries,
       turn: this.gameCore.turn,
       availableCountries: this.currentPhase === 'country_selection' ? this.gameCore.getAvailableCountries() : undefined,
@@ -303,8 +357,10 @@ class GameManager {
       players: this.players.map(p => ({
         id: p.id,
         name: p.name,
+        username: p.name,
         socketId: p.socketId,
-        isHost: p.isHost
+        isHost: p.isHost,
+        isBot: p.isBot || p.name?.startsWith('Bot') || p.username?.startsWith('Bot') || false // 确保设置默认值
       })),
       countries: {},
       turn: 0,
@@ -358,10 +414,12 @@ class GameManager {
     const botPlayer = {
       id: botId,
       name: botName,
-      isBot: true,
+      isBot: true,  // 确保设置 isBot 为 true
       isReady: true,
       socketId: null
     };
+
+    console.log('[游戏管理器] 添加机器人玩家:', botPlayer);
 
     this.players.push(botPlayer);
     this.broadcast('player_joined', { player: botPlayer });
@@ -451,34 +509,53 @@ class GameManager {
 
   // 处理翻开天时牌
   handleDrawTianshiCard(playerId) {
+    console.log('[游戏管理器] 收到翻开天时牌请求:', { playerId });
+    
     // 检查是否是盟主
-    const player = this.players.find(p => p.id === playerId);
+    const player = this.players.find(p => p.id === playerId || p.playerId === playerId);
+    console.log('[游戏管理器] 检查玩家身份:', { 
+      player, 
+      isHost: player?.isHost,
+      players: this.players 
+    });
+    
     if (!player || !player.isHost) {
+      console.log('[游戏管理器] 错误: 玩家不是盟主');
       return;
     }
 
-    // 检查是否已经有激活的天时牌
-    if (this.gameCore.activeTianshiCard) {
-      return;
-    }
-
-    // 翻开天时牌并结算
+    // 翻开天时牌
+    console.log('[游戏管理器] 开始翻开天时牌');
     const tianshiCard = this.gameCore.drawAndActivateTianshiCard();
+    console.log('[游戏管理器] 翻开的天时牌:', tianshiCard);
+    
     if (tianshiCard) {
+      // 获取天时牌堆信息
+      const tianshiDeckCount = this.gameCore.decks.tianshi.size();
+      const tianshiDeck = this.gameCore.decks.tianshi.cards;
+
       // 广播天时牌信息
+      console.log('[游戏管理器] 广播天时牌信息');
       this.broadcast('tianshi_card_drawn', {
         card: tianshiCard,
-        playerId: playerId
+        playerId: playerId,
+        tianshiDeckCount,
+        tianshiDeck
       });
 
       // 结算天时牌效果
+      console.log('[游戏管理器] 结算天时牌效果');
       this.gameCore.resolveTianshiCard(tianshiCard);
       
       // 检查玩家英杰牌目标是否达成
+      console.log('[游戏管理器] 检查英杰牌目标');
       this.gameCore.checkHeroGoals();
 
-      // 广播更新后的游戏状态
+      // 广播最终游戏状态
+      console.log('[游戏管理器] 广播最终游戏状态');
       this.broadcastGameState();
+    } else {
+      console.log('[游戏管理器] 错误: 无法翻开天时牌');
     }
   }
 
@@ -486,7 +563,7 @@ class GameManager {
   handleMessage(playerId, message) {
     switch (message.type) {
       // ... existing cases ...
-      case 'DRAW_TIANSHI_CARD':
+      case 'draw_tianshi_card':
         this.handleDrawTianshiCard(playerId);
         break;
       // ... existing code ...

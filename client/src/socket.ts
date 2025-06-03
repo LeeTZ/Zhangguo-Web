@@ -106,21 +106,11 @@ class SessionManager {
     // 登录成功事件监听
     this.socket.on('login_success', this.handleLoginSuccess);
 
-    // 天时牌翻开事件监听
+    // 天时牌翻开事件监听 - 只更新状态，不处理日志
     this.socket.on('tianshi_card_drawn', (data) => {
       console.log('Tianshi card drawn:', data);
-      // 更新游戏状态
-      const currentState = store.getState().game;
-      store.dispatch(updateGameState({
-        ...currentState,
-        activeTianshiCard: {
-          id: data.card.id,
-          name: data.card.name,
-          type: 'tianshi',
-          description: data.card.description,
-          effect: data.card.effect
-        }
-      }));
+      // 直接使用服务器发送的状态
+      store.dispatch(updateGameState(data.gameState));
     });
   }
 
@@ -218,6 +208,25 @@ class SessionManager {
   public getSessionData() {
     return { ...this.sessionData };
   }
+
+  public playCard(cardId: string, targets?: string[]) {
+    this.socket.emit('play_card', { cardId, targets });
+  }
+
+  public selectHeroCards(cardIds: string[]) {
+    this.socket.emit('select_hero_cards', { cardIds });
+  }
+
+  public drawTianshiCard() {
+    console.log('[Socket] 准备发送翻开天时牌事件');
+    const roomId = store.getState().room.currentRoom?.id;
+    if (!roomId) {
+      console.error('[Socket] 错误: 房间ID不存在');
+      return;
+    }
+    console.log('[Socket] 发送翻开天时牌事件，房间ID:', roomId);
+    this.socket.emit('draw_tianshi_card', { roomId });
+  }
 }
 
 // 导出实例和方法
@@ -226,17 +235,15 @@ export const socket = sessionManager.getSocket();
 
 // 游戏动作对象
 export const gameActions = {
-  startGame: () => {
-    socket.emit('start_game');
+  startGame: () => sessionManager.startGame(),
+  playCard: (cardId: string, targets?: string[]) => sessionManager.playCard(cardId, targets),
+  selectHeroCards: (cardIds: string[]) => sessionManager.selectHeroCards(cardIds),
+  drawTianshiCard: () => sessionManager.drawTianshiCard(),
+  on: (event: string, callback: (data: any) => void) => {
+    sessionManager.getSocket().on(event, callback);
   },
-  playCard: (cardId: string, targets?: string[]) => {
-    socket.emit('play_card', { cardId, targets });
-  },
-  selectHeroCards: (cardIds: string[]) => {
-    socket.emit('select_hero_cards', { cardIds });
-  },
-  drawTianshiCard: () => {
-    socket.emit('DRAW_TIANSHI_CARD');
+  off: (event: string, callback: (data: any) => void) => {
+    sessionManager.getSocket().off(event, callback);
   }
 };
 

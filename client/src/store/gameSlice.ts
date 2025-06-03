@@ -45,7 +45,7 @@ const gameSlice = createSlice({
   initialState,
   reducers: {
     updateGameState(state, action: PayloadAction<GameState>) {
-      return action.payload;
+      Object.assign(state, action.payload);
     },
     setCurrentPlayer(state, action: PayloadAction<Player>) {
       state.currentPlayer = action.payload as WritablePlayer;

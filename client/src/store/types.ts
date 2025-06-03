@@ -11,7 +11,7 @@ export interface Player {
   sessionId: string;
   username: string;
   name: string;
-  hand: {
+  hand?: {
     hero: HeroCard[];
     heroNeutral: HeroCard[];
     renhe: CardType[];
@@ -50,6 +50,7 @@ export type Country = {
 
 // 游戏状态类型
 export interface GameState {
+  roomId?: string;
   phase: GamePhase;
   round: number;
   currentPlayerId: string | null;

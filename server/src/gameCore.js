@@ -242,21 +242,31 @@ class TokenPool {
 // 游戏核心状态
 class GameCore {
   constructor(players) {
-    this.players = players.map(player => ({
-      ...player,
-      selectedCountry: undefined,
-      hand: {
-        hero: [],
-        heroNeutral: [],
-        renhe: [],
-        shishi: [],
-        shenqi: []
-      },
-      geoTokens: GAME_CONSTANTS.INITIAL_GEO_TOKENS,
-      tributeTokens: 0,
-      isHost: false,
-      isReady: false
-    }));
+    this.players = players.map(player => {
+      console.log('[游戏核心] 初始化玩家数据:', player);
+      return {
+        ...player,
+        selectedCountry: undefined,
+        hand: {
+          hero: [],
+          heroNeutral: [],
+          renhe: [],
+          shishi: [],
+          shenqi: []
+        },
+        geoTokens: GAME_CONSTANTS.INITIAL_GEO_TOKENS,
+        tributeTokens: 0,
+        isHost: false,
+        isReady: false,
+        isBot: Boolean(player.isBot)  // 确保 isBot 是布尔值
+      };
+    });
+
+    console.log('[游戏核心] 初始化玩家:', this.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      isBot: p.isBot
+    })));
 
     this.countries = {};
     this.decks = {
@@ -267,7 +277,8 @@ class GameCore {
       shishi: new Deck(),
       shenqi: new Deck(),
       xianji: new Deck(),
-      yuanmou: new Deck()
+      yuanmou: new Deck(),
+      tianshiDiscardPile: [] // 添加天时牌弃牌堆
     };
     this.market = [];
     this.activeTianshiCard = null;
@@ -603,7 +614,9 @@ class GameCore {
     }
 
     const card = this.decks.tianshi.cards.pop();
+    // 设置激活的天时牌
     this.activeTianshiCard = card;
+    console.log('[游戏核心] 激活天时牌:', card);
     return card;
   }
 
@@ -624,7 +637,7 @@ class GameCore {
 
     // 将天时牌移至弃牌堆
     this.decks.tianshiDiscardPile.push(card);
-    this.activeTianshiCard = null;
+    console.log('[游戏核心] 天时牌效果结算完成，已移至弃牌堆');
   }
 
   // 获取天时牌效果
@@ -665,38 +678,9 @@ class GameCore {
 
   // 检查玩家英杰牌目标是否达成
   checkHeroGoals() {
-    this.players.forEach(player => {
-      const playerCountry = this.countries[player.selectedCountry];
-      if (!playerCountry) return;
-
-      // 检查每个英杰牌的目标
-      player.heroes.forEach(hero => {
-        if (hero.isRevealed || !hero.goal) return;
-
-        const goal = hero.goal;
-        let isGoalAchieved = false;
-
-        switch (goal.type) {
-          case 'attribute':
-            // 检查国家属性是否达到目标值
-            isGoalAchieved = playerCountry[goal.attribute] >= goal.value;
-            break;
-          case 'king_token':
-            // 检查是否拥有周天子标记
-            isGoalAchieved = playerCountry.hasKingToken;
-            break;
-          case 'hero_count':
-            // 检查英杰牌数量
-            isGoalAchieved = player.heroes.filter(h => h.isRevealed).length >= goal.value;
-            break;
-        }
-
-        if (isGoalAchieved) {
-          // 目标达成，可以明置英杰牌
-          hero.canReveal = true;
-        }
-      });
-    });
+    // 暂时不实现具体逻辑
+    console.log('[游戏核心] 检查英杰牌目标 - 暂未实现');
+    return;
   }
 
   // 获取当前玩家
@@ -841,7 +825,7 @@ class GameCore {
       } : null,
       players: this.players.map(player => ({
         ...player,
-        hand: player.id === currentPlayer?.id ? player.hand : {
+        hand: (player.isBot || player.id === currentPlayer?.id) ? player.hand : {
           hero: player.hand.hero.length,
           heroNeutral: player.hand.heroNeutral.length,
           renhe: player.hand.renhe.length,
@@ -867,12 +851,17 @@ class GameCore {
 
   // 发放初始卡牌
   dealInitialCards() {
+    console.log('[游戏核心] 开始发放初始卡牌，玩家数量:', this.players.length);
+    
     this.players.forEach(player => {
+      console.log(`[游戏核心] 为玩家 ${player.name} (${player.isBot ? '机器人' : '人类'}) 发放初始卡牌`);
+      
       // 发放初始人和牌
       const initialRenheCards = this.decks.renhe.draw(GAME_CONSTANTS.INITIAL_RENHE_CARDS);
       if (initialRenheCards.length > 0) {
         player.hand.renhe = initialRenheCards;
-        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialRenheCards.length} 张人和牌`);
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialRenheCards.length} 张人和牌:`, 
+          initialRenheCards.map(card => ({id: card.id, name: card.name})));
       } else {
         console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始人和牌`);
       }
@@ -881,7 +870,8 @@ class GameCore {
       const initialShishiCards = this.decks.shishi.draw(GAME_CONSTANTS.INITIAL_SHISHI_CARDS);
       if (initialShishiCards.length > 0) {
         player.hand.shishi = initialShishiCards;
-        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShishiCards.length} 张史实牌:`);
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShishiCards.length} 张史实牌:`,
+          initialShishiCards.map(card => ({id: card.id, name: card.name})));
       } else {
         console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始史实牌`);
         player.hand.shishi = [];
@@ -891,11 +881,21 @@ class GameCore {
       const initialShenqiCards = this.decks.shenqi.draw(GAME_CONSTANTS.INITIAL_SHENQI_CARDS);
       if (initialShenqiCards.length > 0) {
         player.hand.shenqi = initialShenqiCards;
-        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShenqiCards.length} 张神机牌:`);
+        console.log(`[游戏核心] 玩家 ${player.name} 获得 ${initialShenqiCards.length} 张神机牌:`,
+          initialShenqiCards.map(card => ({id: card.id, name: card.name})));
       } else {
         console.error(`[游戏核心] 错误: 无法为玩家 ${player.name} 发放初始神机牌`);
         player.hand.shenqi = [];
       }
+
+      // 打印玩家当前的手牌信息
+      console.log(`[游戏核心] 玩家 ${player.name} 当前手牌信息:`, {
+        hero: player.hand.hero.length,
+        heroNeutral: player.hand.heroNeutral.length,
+        renhe: player.hand.renhe.length,
+        shishi: player.hand.shishi.length,
+        shenqi: player.hand.shenqi.length
+      });
     });
 
     // 设置第一回合的盟主

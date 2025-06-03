@@ -47,20 +47,20 @@ export const Game: React.FC<GameProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const { roomId } = useParams<{ roomId: string }>();
-  const [gameState, setGameState] = useState<GameState | null>(null);
+  const gameState = useSelector((state: RootState) => state.game);
 
   useEffect(() => {
     if (!socket) return;
 
     const handleGameStateUpdate = (newState: GameState) => {
       console.log('[游戏] 状态更新:', newState.phase);
-      setGameState(newState);
+      dispatch(updateGameState(newState));
       setIsConnecting(false);
     };
 
     const handleGameStarted = (data: { gameState: GameState }) => {
       console.log('[游戏] 游戏开始');
-      setGameState(data.gameState);
+      dispatch(updateGameState(data.gameState));
       setIsConnecting(false);
     };
 
@@ -91,7 +91,7 @@ export const Game: React.FC<GameProps> = () => {
       socket.off('game_started', handleGameStarted);
       socket.off('disconnect', handleDisconnect);
     };
-  }, [socket, roomId]);
+  }, [socket, roomId, dispatch]);
 
   const handleCountrySelect = (countryId: string) => {
     if (!socket || !roomId) return;

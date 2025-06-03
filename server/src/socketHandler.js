@@ -100,6 +100,27 @@ class SocketHandler {
       socket.on('select_hero_cards', (data) => {
         this.handleSelectHeroCards(socket, data);
       });
+
+      // 处理翻开天时牌
+      socket.on('draw_tianshi_card', (data) => {
+        console.log('[Socket] 收到翻开天时牌请求:', { socketId: socket.id, data });
+        const { roomId } = data;
+        if (!roomId) {
+          console.error('[Socket] 错误: 缺少房间ID');
+          return;
+        }
+        const room = this.games.get(roomId);
+        if (!room) {
+          console.error('[Socket] 错误: 房间不存在');
+          return;
+        }
+        const player = room.players.find(p => p.socketId === socket.id);
+        if (!player) {
+          console.error('[Socket] 错误: 玩家不在房间中');
+          return;
+        }
+        room.gameManager.handleDrawTianshiCard(player.playerId);
+      });
     });
   }
 
@@ -514,7 +535,28 @@ class SocketHandler {
       name: p.name
     }));
     console.log('Creating game with players:', gamePlayers);
+    
+    // 创建游戏核心实例
     room.gameCore = new GameCore(gamePlayers);
+    
+    // 创建游戏管理器实例
+    const GameManager = require('./gameManager');
+    room.gameManager = new GameManager(roomId, (event, data) => {
+      this.io.to(roomId).emit(event, data);
+    });
+
+    // 添加玩家到游戏管理器
+    room.players.forEach(player => {
+      room.gameManager.addPlayer({
+        id: player.playerId,
+        name: player.name,
+        socketId: player.socketId,
+        isHost: player.isHost
+      });
+    });
+
+    // 设置游戏管理器的 gameCore
+    room.gameManager.gameCore = room.gameCore;
 
     // 获取初始游戏状态
     const gameState = room.gameCore.getState();

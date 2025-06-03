@@ -235,6 +235,7 @@ interface Player {
   id?: string;
   sessionId?: string;
   username: string;
+  name?: string;
   hand?: {
     hero: any[];
     heroNeutral: any[];
@@ -291,7 +292,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const formatPlayers = (players: Player[]) => {
     return players.map(player => {
       // 判断是否是机器人玩家（根据名字前缀）
-      const isBot = player.username?.startsWith('Bot');
+      const isBot = player.name?.startsWith('Bot') || player.username?.startsWith('Bot');
       
       // 获取玩家的手牌数据
       const playerHand = player.hand || {
@@ -302,9 +303,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         shenqi: []
       };
       
-      // 获取英雄卡
-      const heroCards = playerHand.hero?.filter(card => card != null) || [];
-      const heroNeutralCards = playerHand.heroNeutral?.filter(card => card != null) || [];
+      // 确保 hero 和 heroNeutral 是数组
+      const heroCards = Array.isArray(playerHand.hero) ? playerHand.hero.filter(card => card != null) : [];
+      const heroNeutralCards = Array.isArray(playerHand.heroNeutral) ? playerHand.heroNeutral.filter(card => card != null) : [];
       
       // 计算实际的手牌数量
       const handSize = heroCards.length + heroNeutralCards.length;
@@ -317,19 +318,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       
       return {
         id: player.id || player.sessionId,
-        name: player.username,
+        name: player.name || player.username,
         selectedCountry: player.selectedCountry || player.country,
         hand: {
           hero: heroCards,
           heroNeutral: heroNeutralCards,
-          renhe: playerHand.renhe || [],
-          shishi: playerHand.shishi || [],
-          shenqi: playerHand.shenqi || []
+          renhe: Array.isArray(playerHand.renhe) ? playerHand.renhe : [],
+          shishi: Array.isArray(playerHand.shishi) ? playerHand.shishi : [],
+          shenqi: Array.isArray(playerHand.shenqi) ? playerHand.shenqi : []
         },
         handSize,
-        renheCardCount: (playerHand.renhe || []).length,
-        shishiCardCount: (playerHand.shishi || []).length,
-        shenqiCardCount: (playerHand.shenqi || []).length,
+        renheCardCount: Array.isArray(playerHand.renhe) ? playerHand.renhe.length : 0,
+        shishiCardCount: Array.isArray(playerHand.shishi) ? playerHand.shishi.length : 0,
+        shenqiCardCount: Array.isArray(playerHand.shenqi) ? playerHand.shenqi.length : 0,
         geoTokens: player.geoTokens || 0,
         tributeTokens: player.tributeTokens || 0,
         heroCards: allHeroCards,
@@ -482,6 +483,32 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     setPreviousPhase(gameState.phase);
   }, [gameState.phase, gameState.players]);
 
+  // 监听天时牌事件
+  useEffect(() => {
+    const handleTianshiCardDrawn = (data: { card: any; playerId: string }) => {
+      const player = gameState.players.find(p => p.id === data.playerId);
+      if (player) {
+        setGameLogs(prevLogs => [
+          ...prevLogs,
+          {
+            id: `tianshi_${Date.now()}`,
+            timestamp: Date.now(),
+            type: 'info',
+            message: `盟主 ${player.username} 翻开了天时牌「${data.card.name}」`
+          }
+        ]);
+      }
+    };
+
+    // 添加事件监听器
+    gameActions.on('tianshi_card_drawn', handleTianshiCardDrawn);
+
+    // 清理事件监听器
+    return () => {
+      gameActions.off('tianshi_card_drawn', handleTianshiCardDrawn);
+    };
+  }, [gameState.players]);
+
   // 获取当前玩家可执行的操作
   const getCurrentPlayerActions = () => {
     const currentPlayer = gameState.currentPlayer;
@@ -514,16 +541,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             text: '翻开天时牌',
             onClick: () => {
               gameActions.drawTianshiCard();
-              // 添加翻开天时牌的日志
-              setGameLogs(prevLogs => [
-                ...prevLogs,
-                {
-                  id: `draw_tianshi_${Date.now()}`,
-                  timestamp: Date.now(),
-                  type: 'info',
-                  message: `盟主 ${currentPlayer.name || '未知玩家'} 翻开了天时牌`
-                }
-              ]);
             }
           });
         }
