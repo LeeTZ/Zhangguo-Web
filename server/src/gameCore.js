@@ -806,7 +806,7 @@ class GameCore {
             score: card.score,
             goal: card.goal,
             quote: card.quote,
-            type: 'hero'
+            type: 'heroNeutral'
           })),
           count: this.decks.heroNeutral.size()
         };

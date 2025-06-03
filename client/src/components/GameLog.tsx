@@ -94,8 +94,17 @@ const LogTime = styled.span`
   font-size: 12px;
 `;
 
+const LogWrapper = styled.div`
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+`;
+
 export const GameLog: React.FC<GameLogProps> = ({ logs }) => {
   const logListRef = useRef<HTMLDivElement>(null);
+  const logEndRef = React.useRef<HTMLDivElement>(null);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -113,17 +122,34 @@ export const GameLog: React.FC<GameLogProps> = ({ logs }) => {
     }
   }, [logs]);
 
+  // 自动滚动到底部
+  React.useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: 'auto' });
+    }
+  }, [logs]);
+
   return (
     <LogContainer>
       <LogTitle>游戏日志</LogTitle>
-      <LogList ref={logListRef}>
-        {logs.map(log => (
-          <LogItem key={log.id} type={log.type}>
-            <LogTime>{formatTime(log.timestamp)}</LogTime>
-            {log.message}
-          </LogItem>
+      <LogWrapper>
+        {logs.map((log) => (
+          <div key={log.id} style={{ padding: '4px 8px', fontSize: 13, color: getColor(log.type) }}>
+            <span style={{ marginRight: 8, color: '#999' }}>{formatTime(log.timestamp)}</span>
+            <span>{log.message}</span>
+          </div>
         ))}
-      </LogList>
+        <div ref={logEndRef} />
+      </LogWrapper>
     </LogContainer>
   );
-}; 
+};
+
+function getColor(type: string) {
+  switch (type) {
+    case 'success': return '#389e0d';
+    case 'warning': return '#d48806';
+    case 'error': return '#cf1322';
+    default: return '#222';
+  }
+} 
