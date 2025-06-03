@@ -110,17 +110,15 @@ const LogArea = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
+  max-height: 300px; // 限制最大高度
 `;
 
 const GameLogContainer = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 16px;
+  padding-bottom: 8px;
+  max-height: 300px; // 限制最大高度
   
-  @media (max-height: 768px) {
-    padding-bottom: 32px;
-  }
-
   /* 自定义滚动条样式 */
   &::-webkit-scrollbar {
     width: 4px;
@@ -132,6 +130,13 @@ const GameLogContainer = styled.div`
   &::-webkit-scrollbar-thumb {
     background: #ccc;
     border-radius: 2px;
+  }
+
+  /* 确保新消息出现时自动滚动到底部 */
+  > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
   }
 `;
 
@@ -320,6 +325,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         id: player.id || player.sessionId,
         name: player.name || player.username,
         selectedCountry: player.selectedCountry || player.country,
+        country: player.country,
         hand: {
           hero: heroCards,
           heroNeutral: heroNeutralCards,
@@ -589,6 +595,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                   isCurrentPlayer={player.id === currentPlayerId}
                   score={player.score}
                   isHost={player.isHost}
+                  isBot={player.isBot}
+                  selectedCountry={player.selectedCountry}
+                  country={player.country}
                 />
                 <HandCardList
                   renheCards={player.hand.renhe

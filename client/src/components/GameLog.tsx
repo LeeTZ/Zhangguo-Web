@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card } from 'antd';
 import styled from '@emotion/styled';
 
@@ -16,12 +16,18 @@ const LogContainer = styled(Card)`
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  .ant-card-body {
+    padding: 8px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
 `;
 
 const LogTitle = styled.div`
   font-size: 16px;
   font-weight: bold;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   color: #262626;
 `;
 
@@ -29,6 +35,9 @@ const LogList = styled.div`
   flex: 1;
   overflow-y: auto;
   padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
 
   /* 自定义滚动条样式 */
   &::-webkit-scrollbar {
@@ -86,6 +95,8 @@ const LogTime = styled.span`
 `;
 
 export const GameLog: React.FC<GameLogProps> = ({ logs }) => {
+  const logListRef = useRef<HTMLDivElement>(null);
+
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('zh-CN', {
@@ -95,10 +106,17 @@ export const GameLog: React.FC<GameLogProps> = ({ logs }) => {
     });
   };
 
+  // 当logs更新时，自动滚动到底部
+  useEffect(() => {
+    if (logListRef.current) {
+      logListRef.current.scrollTop = logListRef.current.scrollHeight;
+    }
+  }, [logs]);
+
   return (
     <LogContainer>
       <LogTitle>游戏日志</LogTitle>
-      <LogList>
+      <LogList ref={logListRef}>
         {logs.map(log => (
           <LogItem key={log.id} type={log.type}>
             <LogTime>{formatTime(log.timestamp)}</LogTime>

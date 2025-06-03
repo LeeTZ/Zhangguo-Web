@@ -824,19 +824,28 @@ class GameCore {
         tempHeroCards: currentPlayer.tempHeroCards
       } : null,
       players: this.players.map(player => ({
-        ...player,
-        hand: (player.isBot || player.id === currentPlayer?.id) ? player.hand : {
-          hero: player.hand.hero.length,
-          heroNeutral: player.hand.heroNeutral.length,
-          renhe: player.hand.renhe.length,
-          shishi: player.hand.shishi.length,
-          shenqi: player.hand.shenqi.length
-        }
+        id: player.id,
+        name: player.name,
+        selectedCountry: player.selectedCountry,
+        country: player.country,
+        hand: {
+          hero: player.hand.hero,
+          heroNeutral: player.hand.heroNeutral,
+          renhe: player.hand.renhe,
+          shishi: player.hand.shishi,
+          shenqi: player.hand.shenqi
+        },
+        geoTokens: player.geoTokens,
+        tributeTokens: player.tributeTokens,
+        isHost: player.isHost,
+        isReady: player.isReady,
+        isBot: player.isBot,
+        tempHeroCards: player.tempHeroCards
       })),
       countries: this.countries,
       decks: {
         ...deckCounts,
-        hero: getHeroDeckData() // 使用完整的英杰牌数据替换原来的数量
+        hero: getHeroDeckData()
       },
       market: this.market,
       activeTianshiCard: this.activeTianshiCard,
@@ -845,7 +854,7 @@ class GameCore {
       availableCountries: this.phase === 'country_selection' ? this.getAvailableCountries() : undefined,
       selectedCountries: Array.from(this.selectedCountries),
       jingnangMarket: this.jingnangMarket,
-      currentHost: this.currentHost // 添加当前盟主信息
+      currentHost: this.currentHost
     };
   }
 

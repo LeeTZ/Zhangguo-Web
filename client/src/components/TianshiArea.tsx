@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TianshiCard } from '../types/cards';
 import './TianshiArea.css';
 import styled from 'styled-components';

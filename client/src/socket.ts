@@ -106,11 +106,30 @@ class SessionManager {
     // 登录成功事件监听
     this.socket.on('login_success', this.handleLoginSuccess);
 
-    // 天时牌翻开事件监听 - 只更新状态，不处理日志
+    // 天时牌翻开事件监听
     this.socket.on('tianshi_card_drawn', (data) => {
-      console.log('Tianshi card drawn:', data);
-      // 直接使用服务器发送的状态
-      store.dispatch(updateGameState(data.gameState));
+      console.log('Tianshi card drawn event received:', data);
+      
+      // 从当前状态获取游戏状态
+      const currentState = store.getState().game;
+      
+      // 更新游戏状态
+      store.dispatch(updateGameState({
+        ...currentState,
+        activeTianshiCard: data.card,
+        tianshiDeck: data.tianshiDeck,
+        decks: {
+          ...currentState.decks,
+          tianshi: data.tianshiDeckCount
+        }
+      }));
+
+      // 添加调试日志
+      console.log('Game state after update:', {
+        activeTianshiCard: data.card,
+        tianshiDeck: data.tianshiDeck,
+        tianshiDeckCount: data.tianshiDeckCount
+      });
     });
   }
 

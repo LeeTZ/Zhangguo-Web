@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from '@emotion/styled';
 import { Card, Badge, Tooltip, Modal, Button } from 'antd';
 import { HeroCard } from '../types/cards';
-import { CrownOutlined } from '@ant-design/icons';
+import { CrownOutlined, RobotOutlined } from '@ant-design/icons';
 
 interface PlayerInfoProps {
   name: string;
@@ -16,6 +16,9 @@ interface PlayerInfoProps {
   isCurrentPlayer?: boolean;
   score?: number;
   isHost?: boolean;
+  isBot?: boolean;
+  selectedCountry?: string;
+  country?: string;
 }
 
 interface StyledCardProps {
@@ -247,6 +250,30 @@ const HostTag = styled.span`
   color: #d48806;
 `;
 
+const BotTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 11px;
+  background: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  color: #666;
+`;
+
+const CountryTag = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px;
+  border-radius: 2px;
+  font-size: 11px;
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  color: #1890ff;
+`;
+
 export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   name,
   handSize,
@@ -258,10 +285,14 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
   heroCards,
   isCurrentPlayer = false,
   score = 0,
-  isHost
+  isHost,
+  isBot,
+  selectedCountry,
+  country
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const totalHandCards = renheCardCount + shishiCardCount + shenqiCardCount;
+  const displayCountry = selectedCountry || country;
 
   return (
     <PlayerContainer $isCurrentPlayer={isCurrentPlayer}>
@@ -274,6 +305,17 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
                 <CrownOutlined />
                 盟主
               </HostTag>
+            )}
+            {isBot && (
+              <BotTag>
+                <RobotOutlined />
+                机器人
+              </BotTag>
+            )}
+            {displayCountry && (
+              <CountryTag>
+                {displayCountry}
+              </CountryTag>
             )}
           </PlayerName>
           <PlayerStats>

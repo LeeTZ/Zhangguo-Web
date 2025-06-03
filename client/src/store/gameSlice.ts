@@ -45,7 +45,32 @@ const gameSlice = createSlice({
   initialState,
   reducers: {
     updateGameState(state, action: PayloadAction<GameState>) {
-      Object.assign(state, action.payload);
+      // 使用展开运算符创建新的状态对象
+      const newState = {
+        ...state,
+        ...action.payload,
+        // 确保嵌套对象被正确更新
+        players: action.payload.players || state.players,
+        countries: action.payload.countries || state.countries,
+        decks: {
+          ...state.decks,
+          ...(action.payload.decks || {})
+        },
+        market: action.payload.market || state.market,
+        // 直接使用新的天时牌数据
+        activeTianshiCard: action.payload.activeTianshiCard,
+        tianshiDeck: action.payload.tianshiDeck || state.tianshiDeck,
+        jingnangMarket: action.payload.jingnangMarket || state.jingnangMarket
+      };
+
+      // 添加调试日志
+      console.log('Game state updated:', {
+        activeTianshiCard: newState.activeTianshiCard,
+        tianshiDeck: newState.tianshiDeck,
+        decks: newState.decks
+      });
+
+      return newState;
     },
     setCurrentPlayer(state, action: PayloadAction<Player>) {
       state.currentPlayer = action.payload as WritablePlayer;
