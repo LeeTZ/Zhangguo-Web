@@ -569,6 +569,66 @@ class GameManager {
       // ... existing code ...
     }
   }
+
+  // 处理移动周天子
+  handleMoveKingToken(playerId, countryId) {
+    console.log('[游戏管理器] 处理移动周天子请求:', { playerId, countryId });
+    
+    // 检查玩家是否是盟主
+    const player = this.players.find(p => p.id === playerId || p.playerId === playerId);
+    console.log('[游戏管理器] 检查玩家身份:', { 
+      player, 
+      isHost: player?.isHost,
+      players: this.players 
+    });
+    
+    if (!player || !player.isHost) {
+      console.error('[游戏管理器] 错误: 只有盟主可以移动周天子');
+      return false;
+    }
+
+    // 检查是否有激活的天时牌
+    if (!this.gameCore.activeTianshiCard) {
+      console.error('[游戏管理器] 错误: 没有激活的天时牌');
+      return false;
+    }
+
+    // 检查目标国家是否存在且未灭亡
+    const targetCountry = this.gameCore.countries[countryId];
+    if (!targetCountry) {
+      console.error('[游戏管理器] 错误: 目标国家不存在');
+      return false;
+    }
+
+    const totalPower = targetCountry.military + targetCountry.economy + targetCountry.politics;
+    if (totalPower <= 3) {
+      console.error('[游戏管理器] 错误: 目标国家已灭亡');
+      return false;
+    }
+
+    // 移动周天子
+    console.log('[游戏管理器] 尝试移动周天子到目标国家:', {
+      countryId,
+      targetCountry,
+      currentKingToken: Object.entries(this.gameCore.countries).find(([_, country]) => country.hasKingToken)
+    });
+
+    const success = this.gameCore.moveKingToken(countryId);
+    if (success) {
+      console.log('[游戏管理器] 周天子移动成功');
+      // 广播游戏状态更新
+      this.broadcastGameState();
+      // 发送移动周天子事件
+      this.broadcast('king_token_moved', {
+        playerId,
+        countryId
+      });
+      return true;
+    } else {
+      console.error('[游戏管理器] 错误: 移动周天子失败');
+      return false;
+    }
+  }
 }
 
 module.exports = GameManager; 

@@ -246,6 +246,19 @@ class SessionManager {
     console.log('[Socket] 发送翻开天时牌事件，房间ID:', roomId);
     this.socket.emit('draw_tianshi_card', { roomId });
   }
+
+  public moveKingToken(countryId: string) {
+    const roomId = store.getState().room.currentRoom?.id;
+    if (!roomId) {
+      console.error('[Socket] 错误: 房间ID不存在');
+      return;
+    }
+    console.log('[Socket] 发送移动周天子事件，房间ID:', roomId);
+    this.socket.emit('move_king_token', {
+      roomId,
+      countryId
+    });
+  }
 }
 
 // 导出实例和方法
@@ -258,6 +271,7 @@ export const gameActions = {
   playCard: (cardId: string, targets?: string[]) => sessionManager.playCard(cardId, targets),
   selectHeroCards: (cardIds: string[]) => sessionManager.selectHeroCards(cardIds),
   drawTianshiCard: () => sessionManager.drawTianshiCard(),
+  moveKingToken: (countryId: string) => sessionManager.moveKingToken(countryId),
   on: (event: string, callback: (data: any) => void) => {
     sessionManager.getSocket().on(event, callback);
   },

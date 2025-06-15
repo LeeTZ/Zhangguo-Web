@@ -18,50 +18,55 @@ export interface Hand {
 
 export interface Player {
   id: string;
-  sessionId: string;
   username: string;
   isHost: boolean;
-  hand?: Hand;
-  geoTokens: number;
-  tributeTokens: number;
-  isBot?: boolean;
-  selectedCountry?: string;
-  selectedHero?: HeroCard;
+  countryId?: string;
+  handCards?: Card[];
+  resources?: Resources;
+}
+
+export interface Card {
+  id: string;
+  type: string;
+  name: string;
+  description: string;
+  cost?: number;
+  effect?: any;
+}
+
+export interface Resources {
+  gold: number;
+  food: number;
+  population: number;
+  military: number;
+}
+
+export interface Country {
+  id: string;
+  name: string;
+  ownerId?: string;
+  hasKingToken: boolean;
+  resources: Resources;
+  cards: Card[];
+  isDestroyed: boolean;
 }
 
 export interface GameState {
-  roomId?: string;
-  phase: GamePhase;
-  round: number;
-  currentPlayerId: string | null;
-  currentPlayer: Player | null;
+  phase: string;
+  currentPlayerId: string;
   players: Player[];
-  winner?: string;
-  countries: {
-    [key: string]: {
-      name: string;
-      military: number;
-      economy: number;
-      politics: number;
-      hasKingToken: boolean;
-      hegemony: number;
-    }
-  };
-  decks: {
-    tianshi: number;
-    hero: number;
-    heroNeutral: number;
-    renhe: number;
-    shishi: number;
-    shenqi: number;
-    xianji: number;
-    yuanmou: number;
-  };
-  activeTianshiCard: any | null;
-  tianshiDeck?: any[];
-  market: CardType[];
-  initialCards?: HeroCard[];
-  availableCountries?: string[];
-  selectedCountries?: string[];
-  status?: 'waiting' | 'playing' | 'ended';
+  countries: { [key: string]: Country };
+  deck: Card[];
+  discardPile: Card[];
+  activeTianshiCard?: Card;
+  gameStarted: boolean;
+  gameEnded: boolean;
+  winner?: Player;
+}
+
+export interface GameLog {
+  id: string;
+  timestamp: number;
+  type: 'info' | 'success' | 'warning' | 'error';
+  message: string;
 } 

@@ -654,11 +654,24 @@ class GameCore {
 
   // 移动周天子标记
   moveKingToken(countryId) {
+    console.log('[游戏核心] 开始移动周天子:', { countryId });
+    
     // 检查目标国家是否存在且未灭亡
     const targetCountry = this.countries[countryId];
-    if (!targetCountry || this.isCountryDestroyed(countryId)) {
+    if (!targetCountry) {
+      console.error('[游戏核心] 错误: 目标国家不存在');
       return false;
     }
+
+    // 检查国家是否灭亡
+    if (this.isCountryDestroyed(countryId)) {
+      console.error('[游戏核心] 错误: 目标国家已灭亡');
+      return false;
+    }
+
+    // 找到当前持有周天子的国家
+    const currentKingCountry = Object.entries(this.countries).find(([_, country]) => country.hasKingToken);
+    console.log('[游戏核心] 当前周天子位置:', currentKingCountry ? currentKingCountry[0] : '无');
 
     // 移除当前周天子标记
     Object.values(this.countries).forEach(country => {
@@ -667,6 +680,8 @@ class GameCore {
 
     // 放置周天子标记到目标国家
     targetCountry.hasKingToken = true;
+    console.log('[游戏核心] 周天子已移动到:', countryId);
+
     return true;
   }
 

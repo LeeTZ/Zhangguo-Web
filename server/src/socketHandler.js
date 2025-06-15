@@ -121,6 +121,86 @@ class SocketHandler {
         }
         room.gameManager.handleDrawTianshiCard(player.playerId);
       });
+
+      // 处理移动周天子
+      socket.on('move_king_token', (data) => {
+        console.log('[Socket] 收到移动周天子请求:', { socketId: socket.id, data });
+        const { roomId, countryId } = data;
+        if (!roomId || !countryId) {
+          console.error('[Socket] 错误: 缺少必要参数');
+          return;
+        }
+        console.log('[Socket] 当前所有房间:', Array.from(this.games.keys()));
+        const room = this.games.get(roomId);
+        if (!room) {
+          console.error('[Socket] 错误: 房间不存在, roomId:', roomId);
+          return;
+        }
+        console.log('[Socket] 房间信息:', {
+          roomId: roomId,
+          players: room.players,
+          gameManager: room.gameManager ? '存在' : '不存在',
+          gameCore: room.gameCore ? '存在' : '不存在',
+          status: room.status
+        });
+        
+        // 检查游戏是否已经开始
+        if (room.status !== 'playing') {
+          console.error('[Socket] 错误: 游戏尚未开始');
+          return;
+        }
+        
+        // 查找玩家信息
+        const player = room.players.find(p => p.socketId === socket.id);
+        if (!player) {
+          console.error('[Socket] 错误: 玩家不在房间中, socketId:', socket.id);
+          return;
+        }
+        console.log('[Socket] 找到玩家:', {
+          playerId: player.playerId,
+          name: player.name,
+          isHost: player.isHost
+        });
+        
+        // 检查是否是盟主
+        if (!player.isHost) {
+          console.error('[Socket] 错误: 只有盟主可以移动周天子');
+          return;
+        }
+        
+        // 检查游戏管理器是否存在
+        if (!room.gameManager) {
+          console.error('[Socket] 错误: 房间游戏管理器不存在');
+          return;
+        }
+
+        // 检查游戏核心是否存在
+        if (!room.gameCore) {
+          console.error('[Socket] 错误: 房间游戏核心不存在');
+          return;
+        }
+
+        // 检查是否有激活的天时牌
+        if (!room.gameCore.activeTianshiCard) {
+          console.error('[Socket] 错误: 没有激活的天时牌');
+          return;
+        }
+        
+        // 调用游戏管理器的移动周天子方法
+        console.log('[Socket] 调用游戏管理器移动周天子:', { 
+          playerId: player.playerId, 
+          countryId,
+          gameManager: room.gameManager ? '存在' : '不存在',
+          activeTianshiCard: room.gameCore.activeTianshiCard
+        });
+        
+        try {
+          const result = room.gameManager.handleMoveKingToken(player.playerId, countryId);
+          console.log('[Socket] 移动周天子请求处理结果:', result);
+        } catch (error) {
+          console.error('[Socket] 处理移动周天子请求时出错:', error);
+        }
+      });
     });
   }
 
@@ -532,7 +612,8 @@ class SocketHandler {
     room.status = 'playing';
     const gamePlayers = room.players.map(p => ({
       id: p.playerId,
-      name: p.name
+      name: p.name,
+      isHost: p.isHost
     }));
     console.log('Creating game with players:', gamePlayers);
     
@@ -542,11 +623,17 @@ class SocketHandler {
     // 创建游戏管理器实例
     const GameManager = require('./gameManager');
     room.gameManager = new GameManager(roomId, (event, data) => {
+      console.log('[游戏管理器] 广播事件:', event, data);
       this.io.to(roomId).emit(event, data);
     });
 
     // 添加玩家到游戏管理器
     room.players.forEach(player => {
+      console.log('[游戏管理器] 添加玩家:', {
+        id: player.playerId,
+        name: player.name,
+        isHost: player.isHost
+      });
       room.gameManager.addPlayer({
         id: player.playerId,
         name: player.name,
@@ -557,6 +644,10 @@ class SocketHandler {
 
     // 设置游戏管理器的 gameCore
     room.gameManager.gameCore = room.gameCore;
+    console.log('[游戏管理器] 游戏核心已设置:', {
+      gameCore: room.gameManager.gameCore ? '存在' : '不存在',
+      activeTianshiCard: room.gameCore.activeTianshiCard
+    });
 
     // 获取初始游戏状态
     const gameState = room.gameCore.getState();

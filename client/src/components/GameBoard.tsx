@@ -11,6 +11,8 @@ import { JingnangMarket } from './JingnangMarket';
 import { HeroDeckArea } from './HeroDeckArea';
 import { GameLog } from './GameLog';
 import { gameActions } from '../socket';
+import { updateGameState } from '../store/gameSlice';
+import { useDispatch } from 'react-redux';
 
 // 自定义紧凑型 Card 样式
 const CompactCard = styled(Card)`
@@ -289,9 +291,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       message: '游戏开始'
     }
   ]);
+  const [selectedCountryForKing, setSelectedCountryForKing] = useState<string | null>(null);
+  const [showKingMoveDialog, setShowKingMoveDialog] = useState(false);
   const currentPlayerId = gameState.currentPlayer?.id;
   const hasGeneratedPlayingLogsRef = useRef(false);
   const [previousPhase, setPreviousPhase] = useState<string>(gameState.phase);
+  const dispatch = useDispatch();
 
   // 将服务器返回的玩家信息转换为组件需要的格式
   const formatPlayers = (players: Player[]) => {
@@ -506,14 +511,54 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       }
     };
 
+    // 添加移动周天子事件监听
+    const handleKingTokenMoved = (data: { playerId: string; countryId: string }) => {
+      const player = gameState.players.find(p => p.id === data.playerId);
+      if (player) {
+        // 更新游戏日志
+        setGameLogs(prevLogs => [
+          ...prevLogs,
+          {
+            id: `king_token_${Date.now()}`,
+            timestamp: Date.now(),
+            type: 'success',
+            message: `盟主 ${player.username} 将周天子移动到 ${data.countryId}`
+          }
+        ]);
+
+        // 更新游戏状态
+        const updatedCountries = { ...gameState.countries };
+        // 移除所有国家的周天子标记
+        Object.keys(updatedCountries).forEach(countryId => {
+          updatedCountries[countryId] = {
+            ...updatedCountries[countryId],
+            hasKingToken: false
+          };
+        });
+        // 设置目标国家的周天子标记
+        updatedCountries[data.countryId] = {
+          ...updatedCountries[data.countryId],
+          hasKingToken: true
+        };
+
+        // 更新游戏状态
+        dispatch(updateGameState({
+          ...gameState,
+          countries: updatedCountries
+        }));
+      }
+    };
+
     // 添加事件监听器
     gameActions.on('tianshi_card_drawn', handleTianshiCardDrawn);
+    gameActions.on('king_token_moved', handleKingTokenMoved);
 
     // 清理事件监听器
     return () => {
       gameActions.off('tianshi_card_drawn', handleTianshiCardDrawn);
+      gameActions.off('king_token_moved', handleKingTokenMoved);
     };
-  }, [gameState.players]);
+  }, [gameState.players, dispatch]);
 
   // 获取当前玩家可执行的操作
   const getCurrentPlayerActions = () => {
@@ -551,6 +596,20 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           });
         }
 
+        // 如果是盟主且有激活的天时牌，且周天子存在，显示移动周天子的按钮
+        if (isHost && gameState.activeTianshiCard) {
+          const hasKingToken = Object.values(gameState.countries).some(country => country.hasKingToken);
+          if (hasKingToken) {
+            actions.push({
+              key: 'move_king',
+              text: '移动周天子',
+              onClick: () => {
+                setShowKingMoveDialog(true);
+              }
+            });
+          }
+        }
+
         // 添加结束回合按钮
         actions.push({
           key: 'end_turn',
@@ -571,6 +630,25 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           description: '等待其他玩家操作',
           actions: []
         };
+    }
+  };
+
+  // 获取未灭亡的国家列表
+  const getAvailableCountries = () => {
+    return Object.entries(gameState.countries)
+      .filter(([_, country]) => {
+        const totalPower = country.military + country.economy + country.politics;
+        return totalPower > 3; // 国力总和大于3的国家未灭亡
+      })
+      .map(([id, _]) => id);
+  };
+
+  // 处理移动周天子
+  const handleMoveKing = () => {
+    if (selectedCountryForKing) {
+      gameActions.moveKingToken(selectedCountryForKing);
+      setShowKingMoveDialog(false);
+      setSelectedCountryForKing(null);
     }
   };
 
@@ -677,6 +755,56 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           </ActionButtons>
         </ActionContent>
       </ActionArea>
+
+      {/* 周天子移动对话框 */}
+      {showKingMoveDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ width: 400 }}>
+            <h3>选择周天子移动目标</h3>
+            <div style={{ marginBottom: 16 }}>
+              {getAvailableCountries().map(countryId => (
+                <Button
+                  key={countryId}
+                  type={selectedCountryForKing === countryId ? 'primary' : 'default'}
+                  onClick={() => setSelectedCountryForKing(countryId)}
+                  style={{ margin: '0 8px 8px 0' }}
+                >
+                  {countryId}
+                </Button>
+              ))}
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <Button
+                style={{ marginRight: 8 }}
+                onClick={() => {
+                  setShowKingMoveDialog(false);
+                  setSelectedCountryForKing(null);
+                }}
+              >
+                取消
+              </Button>
+              <Button
+                type="primary"
+                disabled={!selectedCountryForKing}
+                onClick={handleMoveKing}
+              >
+                确定
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   );
 }; 
