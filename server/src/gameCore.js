@@ -682,6 +682,10 @@ class GameCore {
     targetCountry.hasKingToken = true;
     console.log('[游戏核心] 周天子已移动到:', countryId);
 
+    // 设置游戏阶段为出牌阶段
+    this.phase = 'play_card';
+    console.log('[游戏核心] 进入出牌阶段');
+
     return true;
   }
 

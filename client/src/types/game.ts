@@ -6,6 +6,7 @@ export type GamePhase =
   | 'country_selection' // 选择国家阶段
   | 'initial_hero_selection' // 初始英雄选择阶段
   | 'playing'          // 游戏进行中
+  | 'play_card'        // 出牌阶段
   | 'ended';           // 游戏结束
 
 export interface Hand {

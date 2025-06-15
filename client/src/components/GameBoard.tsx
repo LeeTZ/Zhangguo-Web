@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Card, Button } from 'antd';
+import { Card, Button, Tooltip } from 'antd';
 import styled from '@emotion/styled';
 import { GameState } from '../types/props';
 import { TianshiArea } from './TianshiArea';
@@ -514,17 +514,28 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     // 添加移动周天子事件监听
     const handleKingTokenMoved = (data: { playerId: string; countryId: string }) => {
       const player = gameState.players.find(p => p.id === data.playerId);
-      if (player) {
+      // 只有当找到玩家且玩家有用户名时才添加日志
+      if (player && player.username) {
         // 更新游戏日志
-        setGameLogs(prevLogs => [
-          ...prevLogs,
-          {
+        setGameLogs(prevLogs => {
+          // 检查是否已经存在相同的日志
+          const isDuplicate = prevLogs.some(log => 
+            log.type === 'success' && 
+            log.message.includes('将周天子移动到') && 
+            log.message.includes(data.countryId)
+          );
+          
+          if (isDuplicate) {
+            return prevLogs;
+          }
+          
+          return [...prevLogs, {
             id: `king_token_${Date.now()}`,
             timestamp: Date.now(),
             type: 'success',
             message: `盟主 ${player.username} 将周天子移动到 ${data.countryId}`
-          }
-        ]);
+          }];
+        });
 
         // 更新游戏状态
         const updatedCountries = { ...gameState.countries };
@@ -565,6 +576,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
     const currentPlayer = gameState.currentPlayer;
     if (!currentPlayer) return null;
 
+    // 检查是否是盟主
+    const isHost = currentPlayer.isHost;
+
     switch (gameState.phase) {
       case 'initial_hero_selection':
         return {
@@ -580,9 +594,29 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             }
           ] : []
         };
+      case 'play_card':
+        if (isHost) {
+          return {
+            title: '出牌阶段',
+            description: '请选择一张牌打出',
+            actions: [
+              {
+                key: 'play_card',
+                text: '选择要打出的牌',
+                onClick: () => {
+                  // 显示选牌对话框
+                  setShowCardSelectionDialog(true);
+                }
+              }
+            ]
+          };
+        }
+        return {
+          title: '等待盟主出牌',
+          description: '请等待盟主选择要打出的牌',
+          actions: []
+        };
       case 'playing':
-        // 检查是否是盟主
-        const isHost = currentPlayer.isHost;
         const actions = [];
         
         // 如果是盟主且没有激活的天时牌，显示翻开天时牌按钮
@@ -630,6 +664,19 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           description: '等待其他玩家操作',
           actions: []
         };
+    }
+  };
+
+  // 添加选牌对话框状态
+  const [showCardSelectionDialog, setShowCardSelectionDialog] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<string | null>(null);
+
+  // 处理出牌
+  const handlePlayCard = () => {
+    if (selectedCard) {
+      gameActions.playCard(selectedCard);
+      setShowCardSelectionDialog(false);
+      setSelectedCard(null);
     }
   };
 
@@ -798,6 +845,98 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 type="primary"
                 disabled={!selectedCountryForKing}
                 onClick={handleMoveKing}
+              >
+                确定
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* 选牌对话框 */}
+      {showCardSelectionDialog && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <Card style={{ width: 1000, maxHeight: '90vh', overflow: 'auto' }}>
+            <h3>选择要打出的牌</h3>
+            <div style={{ 
+              display: 'flex', 
+              flexWrap: 'wrap', 
+              gap: '16px',
+              marginBottom: '24px'
+            }}>
+              {/* 合并所有类型的牌 */}
+              {[
+                ...(gameState.currentPlayer?.hand?.renhe || []),
+                ...(gameState.currentPlayer?.hand?.shishi || []),
+                ...(gameState.currentPlayer?.hand?.shenqi || [])
+              ].map(card => (
+                <Tooltip 
+                  key={card.id}
+                  title={
+                    <div>
+                      <h4 style={{ margin: '0 0 8px 0', color: 'white' }}>{card.name}</h4>
+                      <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.85)' }}>{card.description}</p>
+                    </div>
+                  }
+                >
+                  <Card
+                    style={{
+                      width: 120,
+                      height: 160,
+                      cursor: 'pointer',
+                      border: selectedCard === card.id ? '2px solid #1890ff' : '1px solid #d9d9d9',
+                      backgroundColor: selectedCard === card.id ? '#e6f7ff' : 
+                        card.type === 'renhe' ? '#fff7e6' :
+                        card.type === 'shishi' ? '#f6ffed' :
+                        card.type === 'shenqi' ? '#f9f0ff' : 'white',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '8px',
+                      textAlign: 'center'
+                    }}
+                    onClick={() => setSelectedCard(String(card.id))}
+                  >
+                    <h4 style={{ 
+                      margin: 0,
+                      fontSize: '14px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      width: '100%'
+                    }}>
+                      {card.name}
+                    </h4>
+                  </Card>
+                </Tooltip>
+              ))}
+            </div>
+            <div style={{ textAlign: 'right', marginTop: '16px' }}>
+              <Button
+                style={{ marginRight: 8 }}
+                onClick={() => {
+                  setShowCardSelectionDialog(false);
+                  setSelectedCard(null);
+                }}
+              >
+                取消
+              </Button>
+              <Button
+                type="primary"
+                disabled={!selectedCard}
+                onClick={handlePlayCard}
               >
                 确定
               </Button>

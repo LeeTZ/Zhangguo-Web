@@ -154,6 +154,7 @@ export const Game: React.FC<GameProps> = () => {
           />
         );
       case 'playing':
+      case 'play_card':
         return <GameBoard gameState={gameState} />;
       case 'ended':
         return <div>游戏结束！获胜者：{gameState.winner}</div>;

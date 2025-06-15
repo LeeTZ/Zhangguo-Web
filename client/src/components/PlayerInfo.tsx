@@ -292,7 +292,6 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
 }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const totalHandCards = renheCardCount + shishiCardCount + shenqiCardCount;
-  const displayCountry = selectedCountry || country;
 
   return (
     <PlayerContainer $isCurrentPlayer={isCurrentPlayer}>
@@ -311,11 +310,6 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({
                 <RobotOutlined />
                 机器人
               </BotTag>
-            )}
-            {displayCountry && (
-              <CountryTag>
-                {displayCountry}
-              </CountryTag>
             )}
           </PlayerName>
           <PlayerStats>

@@ -1,5 +1,6 @@
 import { HeroCard, RenheCard, ShishiCard, CardType } from './cards';
 import { GameState as StoreGameState, Player as StorePlayer } from '../store/types';
+import { GamePhase } from './game';
 
 export interface Hand {
   hero: HeroCard[];

@@ -197,6 +197,19 @@ class SocketHandler {
         try {
           const result = room.gameManager.handleMoveKingToken(player.playerId, countryId);
           console.log('[Socket] 移动周天子请求处理结果:', result);
+          
+          if (result) {
+            // 获取游戏核心的状态
+            const gameCoreState = room.gameCore.getState();
+            // 广播游戏状态更新
+            this.io.to(roomId).emit('game_state_update', gameCoreState);
+            
+            // 广播周天子移动事件
+            this.io.to(roomId).emit('king_token_moved', {
+              playerId: player.playerId,
+              countryId: countryId
+            });
+          }
         } catch (error) {
           console.error('[Socket] 处理移动周天子请求时出错:', error);
         }
